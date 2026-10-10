@@ -250,6 +250,7 @@ $initials = strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1));
         </section>
 
         <section class="dashboard-section" id="messages">
+<<<<<<< HEAD
             <div class="page-heading"><div><p class="eyebrow">COMMUNICATION</p><h1>Messages</h1><p>Talk with pet sellers about listings you are interested in.</p></div></div>
             <div class="message-layout">
                 <div class="panel conversation-list"><div class="new-seller-chat"><label for="messagePetSelect">Start a conversation about a pet</label><select id="messagePetSelect"><option value="">Choose a pet listed by a seller</option></select><button class="outline-btn" id="startSellerConversation" type="button">Message seller</button></div><div id="conversationContacts"><p class="empty-state">Choose a seller-listed pet above to start a conversation.</p></div></div>
@@ -257,6 +258,15 @@ $initials = strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1));
                     <div class="chat-header"><div class="message-avatar">PN</div><div><strong>Paw Net Team</strong><span>Usually replies within a few hours</span></div></div>
                     <div class="chat-messages" id="chatMessages"><p class="empty-state">Loading your conversation…</p></div>
                     <form class="message-form" id="messageForm"><input id="messageInput" maxlength="2000" placeholder="Choose a conversation to message its contact" disabled><button type="submit" aria-label="Send message" disabled>➤</button></form>
+=======
+            <div class="page-heading"><div><p class="eyebrow">COMMUNICATION</p><h1>Messages</h1><p>Stay connected with the Paw Net adoption team.</p></div></div>
+            <div class="message-layout">
+                <div class="panel conversation-list"><div class="conversation active"><div class="message-avatar">PN</div><div><strong>Paw Net Team</strong><p>Adoption support</p><small>We’re here to help</small></div></div></div>
+                <div class="panel chat-panel">
+                    <div class="chat-header"><div class="message-avatar">PN</div><div><strong>Paw Net Team</strong><span>Usually replies within a few hours</span></div></div>
+                    <div class="chat-messages" id="chatMessages"><p class="empty-state">Loading your conversation…</p></div>
+                    <form class="message-form" id="messageForm"><input id="messageInput" maxlength="2000" placeholder="Type a message..."><button type="submit" aria-label="Send message">➤</button></form>
+>>>>>>> 2fe54b1b48e42ea676b505281f68d6bd526c71b7
                 </div>
             </div>
         </section>
@@ -284,8 +294,11 @@ $initials = strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1));
             <h2 id="modalPetName">Pet</h2>
             <p id="modalPetMeta"></p>
             <p id="modalPetDescription">This lovely pet is looking for a caring family and a safe, loving home.</p>
+<<<<<<< HEAD
             <p id="modalPickupLocation" class="modal-pickup" hidden></p>
             <label id="modalInquiryWrap" class="modal-inquiry-wrap" hidden for="modalInquiryMessage">Your message to the seller<textarea id="modalInquiryMessage" maxlength="2000"></textarea><small>Pet details and the pickup location are included. You can add your questions.</small></label>
+=======
+>>>>>>> 2fe54b1b48e42ea676b505281f68d6bd526c71b7
             <div class="modal-actions"><button class="outline-btn" id="modalFavorite">♡ Save Favorite</button><button class="primary-btn" id="modalApply">Apply to Adopt</button></div>
         </div>
     </div>

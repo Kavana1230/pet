@@ -190,6 +190,7 @@ td { font-size: 10px; padding: 13px 8px; border-bottom: 1px solid rgba(123,92,25
 .message-layout { display: grid; grid-template-columns: 330px 1fr; gap: 18px; height: 530px; }
 .conversation-list { padding: 8px; }
 .conversation { display: flex; gap: 10px; padding: 13px 10px; border-radius: 12px; align-items: center; position: relative; }
+<<<<<<< HEAD
 .conversation[data-conversation], .conversation[data-support-chat] { width: 100%; border: 0; background: transparent; color: inherit; text-align: left; font: inherit; cursor: pointer; }
 .conversation[data-conversation]:hover, .conversation[data-support-chat]:hover { background: rgba(123,92,255,0.05); }
 .new-seller-chat { padding: 10px; border-bottom: 1px solid var(--border); display: grid; gap: 8px; }
@@ -200,6 +201,8 @@ td { font-size: 10px; padding: 13px 8px; border-bottom: 1px solid rgba(123,92,25
 .modal-inquiry-wrap textarea { min-height: 92px; resize: vertical; border: 1px solid var(--border); border-radius: 10px; padding: 10px; color: var(--text); background: #fff; font: inherit; line-height: 1.5; }
 .modal-inquiry-wrap small { font-size: 9px; font-weight: 400; }
 [hidden] { display: none !important; }
+=======
+>>>>>>> 2fe54b1b48e42ea676b505281f68d6bd526c71b7
 .conversation.active { background: rgba(123,92,255,0.08); }
 .conversation > div:nth-child(2) { min-width: 0; }
 .conversation strong { font-size: 11px; }
@@ -315,3 +318,7 @@ body.dark .empty-state { color: var(--muted); }
   .full-pet-card .pet-image-wrap { height: 230px; }
   .page-heading h1 { font-size: 27px; }
 }
+<<<<<<< HEAD
+=======
+
+>>>>>>> 2fe54b1b48e42ea676b505281f68d6bd526c71b7

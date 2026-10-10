@@ -10,7 +10,11 @@ if ($petName === '') {
 $pets = api_read_json_file(__DIR__ . '/../data/pets.json');
 $pet = null;
 foreach ($pets as $availablePet) {
+<<<<<<< HEAD
     if (($availablePet['name'] ?? '') === $petName && ($availablePet['status'] ?? 'available') !== 'sold' && in_array(strtolower($availablePet['type'] ?? ''), ['cat', 'dog', 'hamster'], true)) {
+=======
+    if (($availablePet['name'] ?? '') === $petName && in_array(strtolower($availablePet['type'] ?? ''), ['cat', 'dog', 'hamster'], true)) {
+>>>>>>> 2fe54b1b48e42ea676b505281f68d6bd526c71b7
         $pet = $availablePet;
         break;
     }

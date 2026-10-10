@@ -1,4 +1,5 @@
 [
+<<<<<<< HEAD
     {
         "name": "Bruno",
         "breed": "Labrador",
@@ -207,4 +208,166 @@
         "pickupLocation": "moodbidri",
         "createdAt": "2026-10-10T16:50:40+02:00"
     }
+=======
+  {
+    "name": "Bruno",
+    "breed": "Labrador",
+    "type": "dog",
+    "age": 2,
+    "image": "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=900&q=80",
+    "description": "Bruno is a cheerful companion who loves long walks and cuddles after playtime."
+  },
+  {
+    "name": "Luna",
+    "breed": "Persian Cat",
+    "type": "cat",
+    "age": 1,
+    "image": "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=900&q=80",
+    "description": "Luna is calm, affectionate, and loves relaxing in sunny spots with her humans."
+  },
+  {
+    "name": "Max",
+    "breed": "Golden Retriever",
+    "type": "dog",
+    "age": 3,
+    "image": "https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=900&q=80",
+    "description": "Max is playful, friendly, and ideal for active families looking for a loyal friend."
+  },
+  {
+    "name": "Milo",
+    "breed": "Domestic Cat",
+    "type": "cat",
+    "age": 2,
+    "image": "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=900&q=80",
+    "description": "Milo is gentle, curious, and loves exploring cozy corners and soft blankets."
+  },
+  {
+    "name": "Coco",
+    "breed": "Beagle",
+    "type": "dog",
+    "age": 4,
+    "image": "https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=900&q=80",
+    "description": "Coco is curious, sweet, and happiest when she is close to her family."
+  },
+  {
+    "name": "Daisy",
+    "breed": "Siamese Cat",
+    "type": "cat",
+    "age": 2,
+    "image": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=900&q=80",
+    "description": "Daisy is social, elegant, and loves attention from people who enjoy calm companionship."
+  },
+  {
+    "name": "Pippin",
+    "breed": "Syrian Hamster",
+    "type": "hamster",
+    "age": 1,
+    "image": "https://images.unsplash.com/photo-1425082661705-1834bfd09dca?auto=format&fit=crop&w=900&q=80",
+    "description": "Pippin is a curious little explorer who enjoys tunnels, gentle handling, and fresh snacks."
+  },
+  {
+    "name": "Nibbles",
+    "breed": "Dwarf Hamster",
+    "type": "hamster",
+    "age": 1,
+    "image": "https://images.unsplash.com/photo-1425082661705-1834bfd09dca?auto=format&fit=crop&w=900&q=80",
+    "description": "Nibbles is a sweet, active hamster who loves burrowing and making cozy nests."
+  },
+  {
+    "name": "Archie",
+    "breed": "Border Collie",
+    "type": "dog",
+    "age": 2,
+    "image": "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=900&q=80",
+    "description": "Archie is clever, affectionate, and happiest when he has a family to learn and play with."
+  },
+  {
+    "name": "Ruby",
+    "breed": "Cocker Spaniel",
+    "type": "dog",
+    "age": 1,
+    "image": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+    "description": "Ruby is a gentle, sunny-natured pup who loves soft blankets and friendly walks."
+  },
+  {
+    "name": "Finn",
+    "breed": "Indie Dog",
+    "type": "dog",
+    "age": 3,
+    "image": "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=900&q=80",
+    "description": "Finn is a loyal, easygoing companion who enjoys exploring and relaxing beside his people."
+  },
+  {
+    "name": "Pepper",
+    "breed": "Dachshund",
+    "type": "dog",
+    "age": 4,
+    "image": "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=900&q=80",
+    "description": "Pepper has a big personality, a curious nose, and a soft spot for lap time."
+  },
+  {
+    "name": "Olive",
+    "breed": "Tabby Cat",
+    "type": "cat",
+    "age": 2,
+    "image": "https://images.unsplash.com/photo-1573865526739-10659fec78a5?auto=format&fit=crop&w=900&q=80",
+    "description": "Olive is a bright, affectionate tabby who loves feather toys and sunny windowsills."
+  },
+  {
+    "name": "Mochi",
+    "breed": "Ragdoll Cat",
+    "type": "cat",
+    "age": 3,
+    "image": "https://images.unsplash.com/photo-1495360010541-f48722b34f7d?auto=format&fit=crop&w=900&q=80",
+    "description": "Mochi is a relaxed cuddle-bug who enjoys quiet company and gentle attention."
+  },
+  {
+    "name": "Cleo",
+    "breed": "Tuxedo Cat",
+    "type": "cat",
+    "age": 1,
+    "image": "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=900&q=80",
+    "description": "Cleo is playful and people-loving, with a talent for turning every box into an adventure."
+  },
+  {
+    "name": "Willow",
+    "breed": "Maine Coon Mix",
+    "type": "cat",
+    "age": 4,
+    "image": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=900&q=80",
+    "description": "Willow is a sweet, fluffy companion who prefers a calm home and a cozy place to nap."
+  },
+  {
+    "name": "Biscuit",
+    "breed": "Syrian Hamster",
+    "type": "hamster",
+    "age": 1,
+    "image": "https://images.unsplash.com/photo-1425082661705-1834bfd09dca?auto=format&fit=crop&w=900&q=80",
+    "description": "Biscuit is a friendly little hamster who likes exploring tunnels and collecting treats."
+  },
+  {
+    "name": "Poppy",
+    "breed": "Winter White Dwarf Hamster",
+    "type": "hamster",
+    "age": 1,
+    "image": "https://images.unsplash.com/photo-1425082661705-1834bfd09dca?auto=format&fit=crop&w=900&q=80",
+    "description": "Poppy is a gentle, inquisitive hamster who enjoys a roomy habitat and patient handling."
+  },
+  {
+    "name": "Muffin",
+    "breed": "Roborovski Hamster",
+    "type": "hamster",
+    "age": 2,
+    "image": "https://images.unsplash.com/photo-1425082661705-1834bfd09dca?auto=format&fit=crop&w=900&q=80",
+    "description": "Muffin is a tiny, energetic friend who loves digging, nesting, and watching the world go by."
+  },
+  {
+    "name": "Cinnamon",
+    "breed": "Syrian Hamster",
+    "type": "hamster",
+    "age": 1,
+    "image": "https://images.unsplash.com/photo-1425082661705-1834bfd09dca?auto=format&fit=crop&w=900&q=80",
+    "description": "Cinnamon is a calm, curious hamster who enjoys fresh bedding, a running wheel, and gentle company."
+  }
+>>>>>>> 2fe54b1b48e42ea676b505281f68d6bd526c71b7
 ]

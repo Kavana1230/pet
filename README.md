@@ -1,6 +1,10 @@
 # Paw Net
 
+<<<<<<< HEAD
 A PHP-backed pet adoption dashboard for cats, dogs, and hamsters. It includes registration and sign-in, an adopt-or-list choice, a seller dashboard for publishing and managing pet listings, a searchable pet catalog, adoption applications, favorites, adopter profile, buyer-seller conversations, support messages, and saved preferences. Listings include the pet's sex and pickup location. Buyers can start a private seller conversation from a pet listing or choose a seller-listed pet from the Messages module; both sides see their contact and can discuss the adoption before the seller marks the pet sold. Sold pets are removed from the adoption catalog.
+=======
+A PHP-backed pet adoption dashboard for cats, dogs, and hamsters. It includes registration and sign-in, a searchable pet catalog, adoption applications, favorites, adopter profile, support messages, and saved preferences.
+>>>>>>> 2fe54b1b48e42ea676b505281f68d6bd526c71b7
 
 ## Run locally on Windows
 

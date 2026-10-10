@@ -27,7 +27,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'address' => $user['address'] ?? '',
                 ];
                 $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+<<<<<<< HEAD
                 header('Location: choose-role.php');
+=======
+                header('Location: index.php');
+>>>>>>> 2fe54b1b48e42ea676b505281f68d6bd526c71b7
                 exit;
             }
         }
