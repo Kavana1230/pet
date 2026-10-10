@@ -1,0 +1,16 @@
+# Private adopter accounts and user activity (never publish real data)
+/data/accounts.php
+/data/applications.json
+/data/messages.json
+/data/conversations.json
+/paw-net-deploy.zip
+
+# Local configuration and logs
+.env
+.env.*
+!.env.example
+*.log
+
+# Editor and operating-system noise
+.DS_Store
+Thumbs.db

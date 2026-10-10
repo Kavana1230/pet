@@ -1,0 +1,210 @@
+[
+    {
+        "name": "Bruno",
+        "breed": "Labrador",
+        "type": "dog",
+        "age": 2,
+        "image": "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=900&q=80",
+        "description": "Bruno is a cheerful companion who loves long walks and cuddles after playtime.",
+        "sex": "male"
+    },
+    {
+        "name": "Luna",
+        "breed": "Persian Cat",
+        "type": "cat",
+        "age": 1,
+        "image": "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=900&q=80",
+        "description": "Luna is calm, affectionate, and loves relaxing in sunny spots with her humans.",
+        "sex": "female"
+    },
+    {
+        "name": "Max",
+        "breed": "Golden Retriever",
+        "type": "dog",
+        "age": 3,
+        "image": "https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=900&q=80",
+        "description": "Max is playful, friendly, and ideal for active families looking for a loyal friend.",
+        "sex": "male"
+    },
+    {
+        "name": "Milo",
+        "breed": "Domestic Cat",
+        "type": "cat",
+        "age": 2,
+        "image": "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=900&q=80",
+        "description": "Milo is gentle, curious, and loves exploring cozy corners and soft blankets.",
+        "sex": "male"
+    },
+    {
+        "name": "Coco",
+        "breed": "Beagle",
+        "type": "dog",
+        "age": 4,
+        "image": "https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=900&q=80",
+        "description": "Coco is curious, sweet, and happiest when she is close to her family.",
+        "sex": "female"
+    },
+    {
+        "name": "Daisy",
+        "breed": "Siamese Cat",
+        "type": "cat",
+        "age": 2,
+        "image": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=900&q=80",
+        "description": "Daisy is social, elegant, and loves attention from people who enjoy calm companionship.",
+        "sex": "female"
+    },
+    {
+        "name": "Pippin",
+        "breed": "Syrian Hamster",
+        "type": "hamster",
+        "age": 1,
+        "image": "https://images.unsplash.com/photo-1425082661705-1834bfd09dca?auto=format&fit=crop&w=900&q=80",
+        "description": "Pippin is a curious little explorer who enjoys tunnels, gentle handling, and fresh snacks.",
+        "sex": "male"
+    },
+    {
+        "name": "Nibbles",
+        "breed": "Dwarf Hamster",
+        "type": "hamster",
+        "age": 1,
+        "image": "https://images.unsplash.com/photo-1425082661705-1834bfd09dca?auto=format&fit=crop&w=900&q=80",
+        "description": "Nibbles is a sweet, active hamster who loves burrowing and making cozy nests.",
+        "sex": "female"
+    },
+    {
+        "name": "Archie",
+        "breed": "Border Collie",
+        "type": "dog",
+        "age": 2,
+        "image": "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=900&q=80",
+        "description": "Archie is clever, affectionate, and happiest when he has a family to learn and play with.",
+        "sex": "male"
+    },
+    {
+        "name": "Ruby",
+        "breed": "Cocker Spaniel",
+        "type": "dog",
+        "age": 1,
+        "image": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+        "description": "Ruby is a gentle, sunny-natured pup who loves soft blankets and friendly walks.",
+        "sex": "female"
+    },
+    {
+        "name": "Finn",
+        "breed": "Indie Dog",
+        "type": "dog",
+        "age": 3,
+        "image": "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=900&q=80",
+        "description": "Finn is a loyal, easygoing companion who enjoys exploring and relaxing beside his people.",
+        "sex": "male"
+    },
+    {
+        "name": "Pepper",
+        "breed": "Dachshund",
+        "type": "dog",
+        "age": 4,
+        "image": "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=900&q=80",
+        "description": "Pepper has a big personality, a curious nose, and a soft spot for lap time.",
+        "sex": "female"
+    },
+    {
+        "name": "Olive",
+        "breed": "Tabby Cat",
+        "type": "cat",
+        "age": 2,
+        "image": "https://images.unsplash.com/photo-1573865526739-10659fec78a5?auto=format&fit=crop&w=900&q=80",
+        "description": "Olive is a bright, affectionate tabby who loves feather toys and sunny windowsills.",
+        "sex": "female"
+    },
+    {
+        "name": "Mochi",
+        "breed": "Ragdoll Cat",
+        "type": "cat",
+        "age": 3,
+        "image": "https://images.unsplash.com/photo-1495360010541-f48722b34f7d?auto=format&fit=crop&w=900&q=80",
+        "description": "Mochi is a relaxed cuddle-bug who enjoys quiet company and gentle attention.",
+        "sex": "male"
+    },
+    {
+        "name": "Cleo",
+        "breed": "Tuxedo Cat",
+        "type": "cat",
+        "age": 1,
+        "image": "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=900&q=80",
+        "description": "Cleo is playful and people-loving, with a talent for turning every box into an adventure.",
+        "sex": "female"
+    },
+    {
+        "name": "Willow",
+        "breed": "Maine Coon Mix",
+        "type": "cat",
+        "age": 4,
+        "image": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=900&q=80",
+        "description": "Willow is a sweet, fluffy companion who prefers a calm home and a cozy place to nap.",
+        "sex": "female"
+    },
+    {
+        "name": "Biscuit",
+        "breed": "Syrian Hamster",
+        "type": "hamster",
+        "age": 1,
+        "image": "https://images.unsplash.com/photo-1425082661705-1834bfd09dca?auto=format&fit=crop&w=900&q=80",
+        "description": "Biscuit is a friendly little hamster who likes exploring tunnels and collecting treats.",
+        "sex": "male"
+    },
+    {
+        "name": "Poppy",
+        "breed": "Winter White Dwarf Hamster",
+        "type": "hamster",
+        "age": 1,
+        "image": "https://images.unsplash.com/photo-1425082661705-1834bfd09dca?auto=format&fit=crop&w=900&q=80",
+        "description": "Poppy is a gentle, inquisitive hamster who enjoys a roomy habitat and patient handling.",
+        "sex": "female"
+    },
+    {
+        "name": "Muffin",
+        "breed": "Roborovski Hamster",
+        "type": "hamster",
+        "age": 2,
+        "image": "https://images.unsplash.com/photo-1425082661705-1834bfd09dca?auto=format&fit=crop&w=900&q=80",
+        "description": "Muffin is a tiny, energetic friend who loves digging, nesting, and watching the world go by.",
+        "sex": "male"
+    },
+    {
+        "name": "Cinnamon",
+        "breed": "Syrian Hamster",
+        "type": "hamster",
+        "age": 1,
+        "image": "https://images.unsplash.com/photo-1425082661705-1834bfd09dca?auto=format&fit=crop&w=900&q=80",
+        "description": "Cinnamon is a calm, curious hamster who enjoys fresh bedding, a running wheel, and gentle company.",
+        "sex": "female"
+    },
+    {
+        "id": "fd4bc5161f4df0c6f0b2c32e",
+        "ownerId": "54037227a9622487607086b6a9b370c9",
+        "status": "available",
+        "name": "cat",
+        "breed": "cat",
+        "type": "hamster",
+        "sex": "male",
+        "age": 4,
+        "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTLvUHA976uBPHNWnAYfoyuSc1rxJbNgwGNeHZt6Bjo5p4Bcpt-h7OKAzdD&s=10",
+        "description": "wqwqw",
+        "pickupLocation": "moodbidri",
+        "createdAt": "2026-10-10T16:34:35+02:00"
+    },
+    {
+        "id": "24686fa22f2ac5d8dcfb2e16",
+        "ownerId": "54037227a9622487607086b6a9b370c9",
+        "status": "available",
+        "name": "cat",
+        "breed": "cat",
+        "type": "dog",
+        "sex": "female",
+        "age": 4,
+        "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTLvUHA976uBPHNWnAYfoyuSc1rxJbNgwGNeHZt6Bjo5p4Bcpt-h7OKAzdD&s=10",
+        "description": "nb bbh",
+        "pickupLocation": "moodbidri",
+        "createdAt": "2026-10-10T16:50:40+02:00"
+    }
+]

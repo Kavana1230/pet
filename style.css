@@ -1,0 +1,256 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #fffaf5;
+    color: #333;
+}
+
+/* Navigation */
+
+header {
+    background-color: #6c5ce7;
+    padding: 18px 8%;
+}
+
+nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+nav h1 {
+    color: white;
+    font-size: 28px;
+}
+
+nav ul {
+    display: flex;
+    list-style: none;
+    gap: 25px;
+}
+
+nav ul li a {
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+nav ul li a:hover {
+    color: #ffeaa7;
+}
+
+/* Hero */
+
+.hero {
+    height: 500px;
+    background-image: url("https://via.placeholder.com/1200x500?text=Happy+Paws");
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    padding-left: 10%;
+}
+
+.hero-content {
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 35px;
+    border-radius: 15px;
+    max-width: 500px;
+}
+
+.hero-content h2 {
+    font-size: 40px;
+    margin-bottom: 15px;
+    color: #6c5ce7;
+}
+
+.hero-content p {
+    font-size: 18px;
+    margin-bottom: 25px;
+}
+
+.btn {
+    background-color: #6c5ce7;
+    color: white;
+    padding: 12px 25px;
+    border-radius: 25px;
+    text-decoration: none;
+}
+
+/* Sections */
+
+section {
+    padding: 60px 8%;
+}
+
+.section-title {
+    text-align: center;
+    font-size: 32px;
+    margin-bottom: 40px;
+    color: #6c5ce7;
+}
+
+/* Pet Cards */
+
+.pet-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 25px;
+}
+
+.pet-card {
+    background-color: white;
+    border-radius: 15px;
+    overflow: hidden;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    padding-bottom: 20px;
+}
+
+.pet-card img {
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+}
+
+.pet-card h3 {
+    font-size: 24px;
+    margin: 15px 0 10px;
+}
+
+.pet-card p {
+    margin: 6px;
+    color: #666;
+}
+
+.pet-card button,
+.contact button {
+    background-color: #6c5ce7;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    margin-top: 15px;
+    border-radius: 20px;
+    cursor: pointer;
+}
+
+.pet-card button:hover,
+.contact button:hover {
+    background-color: #4834d4;
+}
+
+/* About */
+
+.about {
+    background-color: #eee9ff;
+    text-align: center;
+}
+
+.about p {
+    max-width: 800px;
+    margin: auto;
+    font-size: 18px;
+    line-height: 1.7;
+}
+
+/* Adoption Process */
+
+.process-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+}
+
+.process-card {
+    background-color: white;
+    padding: 25px;
+    text-align: center;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.process-card h3 {
+    color: #6c5ce7;
+    margin-bottom: 12px;
+}
+
+/* Contact */
+
+.contact {
+    background-color: #eee9ff;
+}
+
+form {
+    max-width: 600px;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+input,
+textarea {
+    padding: 14px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 16px;
+}
+
+textarea {
+    height: 120px;
+    resize: none;
+}
+
+.contact button {
+    padding: 14px;
+    font-size: 16px;
+}
+
+/* Footer */
+
+footer {
+    background-color: #6c5ce7;
+    color: white;
+    text-align: center;
+    padding: 20px;
+}
+
+/* Responsive Design */
+
+@media (max-width: 900px) {
+
+    nav {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    nav ul {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .pet-container {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .process-container {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+
+    .pet-container,
+    .process-container {
+        grid-template-columns: 1fr;
+    }
+
+    .hero-content h2 {
+        font-size: 30px;
+    }
+}
