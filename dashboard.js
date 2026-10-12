@@ -2,11 +2,8 @@ let pets = [];
 let favorites = new Set();
 let applications = [];
 let messages = [];
-<<<<<<< HEAD
 let conversations = [];
 let activeConversationId = '';
-=======
->>>>>>> 2fe54b1b48e42ea676b505281f68d6bd526c71b7
 let profile = {};
 let settings = {};
 
@@ -182,7 +179,6 @@ function renderProfile() {
 function renderMessages() {
   const chat = document.getElementById('chatMessages');
   if (!chat) return;
-<<<<<<< HEAD
   const list = document.getElementById('conversationContacts');
   const active = conversations.find((item) => item.id === activeConversationId);
   const sellerPets = pets.filter((pet) => pet.ownerId && pet.status !== 'sold' && pet.ownerId !== profile.id);
@@ -208,14 +204,6 @@ function renderMessages() {
   else chat.innerHTML = (active.messages || []).map((message) => `<div class="bubble ${message.senderId === profile.id ? 'sent' : 'received'}">${escapeHtml(message.text).replace(/\n/g, '<br>')}</div>`).join('');
   list?.querySelectorAll('[data-conversation]')?.forEach((button) => button.addEventListener('click', () => { activeConversationId = button.dataset.conversation; renderMessages(); }));
   if (active) chat.scrollTop = chat.scrollHeight;
-=======
-  if (!messages.length) {
-    chat.innerHTML = '<p class="empty-state">Welcome to Paw Net support. Send us a message if you need help with your adoption journey.</p>';
-    return;
-  }
-  chat.innerHTML = messages.map((message) => `<div class="bubble ${message.sender === 'team' ? 'received' : 'sent'}">${escapeHtml(message.text)}</div>`).join('');
-  chat.scrollTop = chat.scrollHeight;
->>>>>>> 2fe54b1b48e42ea676b505281f68d6bd526c71b7
 }
 
 function renderSettings() {
@@ -239,7 +227,6 @@ function renderDashboardData(data) {
   renderMessages();
   renderSettings();
   document.getElementById('favoriteCount')?.replaceChildren(document.createTextNode(String(favorites.size)));
-<<<<<<< HEAD
 const unread = conversations.reduce((n, c) => {
   const last = c.messages?.[c.messages.length - 1];
   return last && last.senderId !== profile.id ? n + 1 : n;
@@ -255,18 +242,6 @@ async function loadDashboard() {
     ]);
     pets = Array.isArray(petData) ? petData : (petData.pets || []);
     conversations = messageData.conversations || [];
-=======
-  document.getElementById('messageBadge')?.replaceChildren(document.createTextNode(String(messages.length)));
-}
-
-async function loadDashboard() {
-  try {
-    const [petData, dashboardData] = await Promise.all([
-      apiRequest('api/pets.php'),
-      apiRequest('api/dashboard-data.php')
-    ]);
-    pets = Array.isArray(petData) ? petData : (petData.pets || []);
->>>>>>> 2fe54b1b48e42ea676b505281f68d6bd526c71b7
     document.getElementById('availablePetCount')?.replaceChildren(document.createTextNode(String(pets.length)));
     renderDashboardData(dashboardData);
   } catch (error) {
@@ -315,7 +290,6 @@ function openPet(petName) {
   document.getElementById('modalPetImage').src = pet.image;
   document.getElementById('modalPetImage').alt = pet.name;
   document.getElementById('modalPetName').textContent = pet.name;
-<<<<<<< HEAD
   document.getElementById('modalPetMeta').textContent = `${pet.breed} · ${pet.age} ${pet.age === 1 ? 'year' : 'years'} old · ${pet.sex ? `${pet.sex[0].toUpperCase()}${pet.sex.slice(1)}` : 'Sex not specified'} · ${pet.type}`;
   document.getElementById('modalPetDescription').textContent = pet.description;
   const pickup = document.getElementById('modalPickupLocation');
@@ -326,10 +300,6 @@ function openPet(petName) {
   inquiryWrap.hidden = !pet.ownerId;
   inquiryText.value = pet.ownerId ? `Hi, I'm interested in adopting ${pet.name}. Could you tell me more about their health, personality, and routine, and let me know when we could arrange a meet-and-greet?` : '';
   document.getElementById('modalApply').textContent = pet.ownerId ? 'Send adoption inquiry' : 'Apply to Adopt';
-=======
-  document.getElementById('modalPetMeta').textContent = `${pet.breed} · ${pet.age} ${pet.age === 1 ? 'year' : 'years'} old · ${pet.type}`;
-  document.getElementById('modalPetDescription').textContent = pet.description;
->>>>>>> 2fe54b1b48e42ea676b505281f68d6bd526c71b7
   const favoriteButton = document.getElementById('modalFavorite');
   favoriteButton.textContent = favorites.has(pet.name) ? '♥ Saved' : '♡ Save Favorite';
   document.getElementById('petModal').classList.add('open');
@@ -365,7 +335,6 @@ function setupPetActions() {
     const petName = document.getElementById('modalPetName')?.textContent;
     if (!petName) return;
     try {
-<<<<<<< HEAD
       const selectedPet = petByName(petName);
       if (selectedPet?.ownerId && selectedPet.id) {
         const result = await apiRequest('api/messages.php', { method: 'POST', body: JSON.stringify({ action: 'start', petId: selectedPet.id, message: document.getElementById('modalInquiryMessage')?.value.trim() }) });
@@ -379,8 +348,6 @@ function setupPetActions() {
         document.getElementById('petModal')?.classList.remove('open');
         return;
       }
-=======
->>>>>>> 2fe54b1b48e42ea676b505281f68d6bd526c71b7
       await apiRequest('api/apply.php', { method: 'POST', body: JSON.stringify({ petName }) });
       const result = await apiRequest('api/dashboard-data.php');
       applications = result.applications || [];
@@ -433,7 +400,6 @@ function setupForms() {
     }
   });
 
-<<<<<<< HEAD
   document.getElementById('startSellerConversation')?.addEventListener('click', async () => {
     const select = document.getElementById('messagePetSelect');
     const pet = pets.find((item) => item.id === select?.value);
@@ -461,14 +427,11 @@ function setupForms() {
     }
   });
 
-=======
->>>>>>> 2fe54b1b48e42ea676b505281f68d6bd526c71b7
   document.getElementById('messageForm')?.addEventListener('submit', async (event) => {
     event.preventDefault();
     const input = document.getElementById('messageInput');
     const message = input.value.trim();
     if (!message) return;
-<<<<<<< HEAD
     if (!activeConversationId) {
       showToast('Choose a seller conversation before sending a message.');
       return;
@@ -482,16 +445,6 @@ function setupForms() {
       input.value = '';
       renderMessages();
       document.getElementById('messageBadge')?.replaceChildren(document.createTextNode(String(messages.length + conversations.length)));
-=======
-    const submit = event.currentTarget.querySelector('button[type="submit"]');
-    submit.disabled = true;
-    try {
-      const result = await apiRequest('api/messages.php', { method: 'POST', body: JSON.stringify({ message }) });
-      messages.push(result.message);
-      input.value = '';
-      renderMessages();
-      document.getElementById('messageBadge')?.replaceChildren(document.createTextNode(String(messages.length)));
->>>>>>> 2fe54b1b48e42ea676b505281f68d6bd526c71b7
     } catch (error) {
       showToast(error.message || 'Unable to send your message.');
     } finally {
@@ -499,7 +452,6 @@ function setupForms() {
     }
   });
 
-<<<<<<< HEAD
   window.setInterval(async () => {
     if (!document.getElementById('messages')?.classList.contains('active')) return;
     try {
@@ -511,8 +463,6 @@ function setupForms() {
     }
   }, 7000);
 
-=======
->>>>>>> 2fe54b1b48e42ea676b505281f68d6bd526c71b7
   document.querySelectorAll('[data-setting]').forEach((input) => {
     input.addEventListener('change', async () => {
       const previous = !input.checked;
