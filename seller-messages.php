@@ -1,23 +1,7 @@
 <?php
 require_once __DIR__ . '/auth_helpers.php';
 start_auth_session();
-if (empty($_SESSION['user']['id'])) { header('Location: login.php'); exit; }
-
-$userId = (string) $_SESSION['user']['id'];
-
-// Require at least one listing owned by this user
-$petsFile = __DIR__ . '/data/pets.json';
-$ownsListing = false;
-if (is_readable($petsFile)) {
-    $all = json_decode((string) file_get_contents($petsFile), true);
-    if (is_array($all)) {
-        foreach ($all as $p) {
-            if (($p['ownerId'] ?? '') === $userId) { $ownsListing = true; break; }
-        }
-    }
-}
-if (!$ownsListing) { header('Location: index.php'); exit; }
-
+auth_require_role('seller');
 $name = (string) ($_SESSION['user']['name'] ?? 'Pet seller');
 ?>
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="csrf-token" content="<?= auth_escape(auth_csrf_token()) ?>"><title>Messages · Paw Net</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet"><style>

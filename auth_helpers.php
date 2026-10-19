@@ -32,6 +32,55 @@ function load_auth_users(): array
     return is_array($users) ? $users : [];
 }
 
+function auth_user_role(array $user): string
+{
+    if (in_array($user['role'] ?? null, ['buyer', 'seller'], true)) {
+        return (string) $user['role'];
+    }
+
+    $pets = @json_decode((string) @file_get_contents(__DIR__ . '/data/pets.json'), true);
+    if (is_array($pets)) {
+        foreach ($pets as $pet) {
+            if (($pet['ownerId'] ?? '') === ($user['id'] ?? '')) {
+                return 'seller';
+            }
+        }
+    }
+
+    return 'buyer';
+}
+
+function auth_redirect_for_role(string $role): void
+{
+    header('Location: ' . ($role === 'seller' ? 'seller.php' : 'index.php'));
+    exit;
+}
+
+function auth_require_role(string $requiredRole): void
+{
+    start_auth_session();
+    if (empty($_SESSION['user']['id'])) {
+        header('Location: login.php?role=' . rawurlencode($requiredRole));
+        exit;
+    }
+
+    $userId = (string) $_SESSION['user']['id'];
+    foreach (load_auth_users() as $user) {
+        if (($user['id'] ?? '') === $userId) {
+            $role = auth_user_role($user);
+            $_SESSION['user']['role'] = $role;
+            if ($role !== $requiredRole) {
+                auth_redirect_for_role($role);
+            }
+            return;
+        }
+    }
+
+    $_SESSION = [];
+    header('Location: login.php?role=' . rawurlencode($requiredRole));
+    exit;
+}
+
 function save_auth_users(array $users): bool
 {
     $php = "<?php\nreturn " . var_export($users, true) . ";\n";
@@ -57,7 +106,6 @@ function auth_csrf_is_valid(): bool
 function redirect_if_authenticated(): void
 {
     if (!empty($_SESSION['user'])) {
-        header('Location: index.php');
-        exit;
+        auth_redirect_for_role(auth_user_role($_SESSION['user']));
     }
 }

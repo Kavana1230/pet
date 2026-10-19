@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/common.php';
-$user = api_require_user(['GET', 'POST']);
+$user = api_require_user(['GET', 'POST'], 'seller');
 $path = __DIR__ . '/../data/pets.json';
 $pets = api_read_json_file($path);
 $userId = (string) $user['id'];

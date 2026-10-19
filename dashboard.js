@@ -4,6 +4,8 @@ let applications = [];
 let messages = [];
 let conversations = [];
 let activeConversationId = '';
+let selectedPet = null;
+let messagingError = '';
 let profile = {};
 let settings = {};
 
@@ -64,7 +66,10 @@ function petByName(name) {
 
 function petCard(pet, compact = false) {
   const liked = favorites.has(pet.name);
+  const isOwnListing = Boolean(pet.ownerId && pet.ownerId === profile.id);
   const species = String(pet.type || '').toLowerCase();
+  const age = Number(pet.age);
+  const ageLabel = `${escapeHtml(pet.age)} ${age === 1 ? 'year' : 'years'} old`;
   return `
     <article class="${compact ? 'dashboard-pet' : 'full-pet-card'}">
       <div class="pet-image-wrap">
@@ -74,24 +79,47 @@ function petCard(pet, compact = false) {
       </div>
       <div class="${compact ? 'pet-body' : 'full-pet-card-body'}">
         <div class="pet-card-title"><h3>${escapeHtml(pet.name)}</h3><span class="pet-tag">${escapeHtml(pet.breed)}</span></div>
-        <p>${escapeHtml(pet.age)} ${Number(pet.age) === 1 ? 'year' : 'years'} old</p>
-        <button class="${compact ? 'small-primary' : 'primary-btn'}" data-adopt="${escapeHtml(pet.name)}">Meet ${escapeHtml(pet.name)}</button>
+        <p class="pet-card-meta">${ageLabel}${pet.sex ? ` <span aria-hidden="true">·</span> ${escapeHtml(pet.sex[0].toUpperCase() + pet.sex.slice(1))}` : ''}</p>
+        ${compact ? '' : `<p class="pet-card-description">${escapeHtml(pet.description || 'Ready to meet a loving new family.')}</p>`}
+        ${isOwnListing
+          ? '<button class="small-primary" type="button" disabled>Your listing</button>'
+          : `<button class="${compact ? 'small-primary' : 'primary-btn'}" data-adopt="${escapeHtml(pet.id || pet.name)}">${compact ? `Meet ${escapeHtml(pet.name)}` : 'Meet this pet'}</button>`}
       </div>
     </article>`;
 }
 
-function renderPetGrid() {
-  const grid = document.getElementById('fullPetGrid');
-  const favoriteGrid = document.getElementById('favoriteGrid');
+function filteredPets() {
   const searchValue = (document.getElementById('petSearch')?.value || document.getElementById('globalSearch')?.value || '').trim().toLowerCase();
   const typeValue = document.getElementById('typeFilter')?.value || 'all';
   const ageValue = document.getElementById('ageFilter')?.value || 'all';
 
   const filtered = pets.filter((pet) => {
-    const matchesSearch = `${pet.name} ${pet.breed} ${pet.type}`.toLowerCase().includes(searchValue);
+    const matchesSearch = `${pet.name} ${pet.breed} ${pet.type} ${pet.description || ''}`.toLowerCase().includes(searchValue);
     const matchesType = typeValue === 'all' || pet.type === typeValue;
     const matchesAge = ageValue === 'all' || (ageValue === 'young' && pet.age <= 2) || (ageValue === 'adult' && pet.age >= 3);
     return matchesSearch && matchesType && matchesAge;
+  });
+  const sortValue = document.getElementById('petSort')?.value || 'recommended';
+  if (sortValue === 'name') filtered.sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  if (sortValue === 'youngest') filtered.sort((a, b) => Number(a.age) - Number(b.age));
+  if (sortValue === 'oldest') filtered.sort((a, b) => Number(b.age) - Number(a.age));
+  if (sortValue === 'newest') filtered.sort((a, b) => Date.parse(b.createdAt || '') - Date.parse(a.createdAt || ''));
+  return filtered;
+}
+
+function renderPetGrid() {
+  const grid = document.getElementById('fullPetGrid');
+  const favoriteGrid = document.getElementById('favoriteGrid');
+  const filtered = filteredPets();
+  const resultCount = document.getElementById('petResultCount');
+
+  if (resultCount) {
+    resultCount.textContent = `${filtered.length} ${filtered.length === 1 ? 'companion' : 'companions'} to meet`;
+  }
+  document.querySelectorAll('[data-pet-type]').forEach((button) => {
+    const active = button.dataset.petType === (document.getElementById('typeFilter')?.value || 'all');
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
   });
 
   if (grid) {
@@ -104,7 +132,7 @@ function renderPetGrid() {
 
   const recommendations = document.getElementById('recommendedPets');
   if (recommendations) {
-    const picks = ['dog', 'cat', 'hamster'].map((species) => pets.find((pet) => pet.type === species)).filter(Boolean);
+    const picks = ['dog', 'cat', 'hamster'].map((species) => pets.find((pet) => pet.type === species && (!pet.ownerId || pet.ownerId !== profile.id))).filter(Boolean);
     recommendations.innerHTML = picks.map((pet) => petCard(pet, true)).join('');
   }
 }
@@ -179,31 +207,116 @@ function renderProfile() {
 function renderMessages() {
   const chat = document.getElementById('chatMessages');
   if (!chat) return;
+  const errorNotice = document.getElementById('messageError');
+  if (errorNotice) {
+    errorNotice.hidden = !messagingError;
+    errorNotice.textContent = messagingError;
+  }
   const list = document.getElementById('conversationContacts');
   const active = conversations.find((item) => item.id === activeConversationId);
-  const sellerPets = pets.filter((pet) => pet.ownerId && pet.status !== 'sold' && pet.ownerId !== profile.id);
-  if (sellerPetSelect) {
-    const sellerPets = pets.filter((pet) => pet.ownerId && pet.status !== 'sold');
-    sellerPetSelect.innerHTML = '<option value="">Choose a pet listed by a seller</option>' + sellerPets.map((pet) => `<option value="${escapeHtml(pet.id)}">${escapeHtml(pet.name)} · ${escapeHtml(pet.breed)}</option>`).join('');
-  }
-  if (list) {
-    list.innerHTML = conversations.map((item) => {
-      const otherName = item.buyerId === profile.id ? item.sellerName : item.buyerName;
-      const lastMessage = item.messages?.[item.messages.length - 1]?.text || 'Start your conversation';
-      return `<button class="conversation${item.id === activeConversationId ? ' active' : ''}" data-conversation="${escapeHtml(item.id)}"><div class="message-avatar">${escapeHtml((otherName || 'P').slice(0, 1).toUpperCase())}</div><div><strong>${escapeHtml(otherName)}</strong><p>About ${escapeHtml(item.petName)}</p><small>${escapeHtml(lastMessage)}</small></div></button>`;
-    }).join('');
-    if (!conversations.length) list.innerHTML = '<p class="empty-state">No seller conversations yet. Choose a seller-listed pet above, then message them here.</p>';
-  }
-  const header = document.querySelector('.chat-header');
-  if (header) header.innerHTML = `<div class="message-avatar">${active ? escapeHtml(((active.buyerId === profile.id ? active.sellerName : active.buyerName) || 'P').slice(0, 1).toUpperCase()) : '🐾'}</div><div><strong>${active ? escapeHtml(active.buyerId === profile.id ? active.sellerName : active.buyerName) : 'Choose a seller conversation'}</strong><span>${active ? `About ${escapeHtml(active.petName)} · ${escapeHtml(active.listing?.sex || '')} · Pickup: ${escapeHtml(active.listing?.pickupLocation || 'confirm with seller')}` : 'Your messages go directly to the pet seller you choose.'}</span></div>`;
+  const sellerPetSelect = document.getElementById('messagePetSelect');
+  const startButton = document.getElementById('startSellerConversation');
+  const search = (document.getElementById('conversationSearch')?.value || '').trim().toLowerCase();
+  const sellerPets = pets.filter((pet) => pet.ownerId && pet.ownerId !== profile.id && pet.status !== 'sold');
   const messageInput = document.getElementById('messageInput');
   const sendButton = document.querySelector('#messageForm button[type="submit"]');
+  const listingCard = document.getElementById('chatListingCard');
+  const wasNearBottom = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 48;
+
+  if (sellerPetSelect) {
+    sellerPetSelect.innerHTML = sellerPets.length
+      ? '<option value="">Choose a pet listed by a seller</option>' + sellerPets.map((pet) => `<option value="${escapeHtml(pet.id)}">${escapeHtml(pet.name)} · ${escapeHtml(pet.breed)}</option>`).join('')
+      : '<option value="">No other members’ listings yet</option>';
+    sellerPetSelect.disabled = !sellerPets.length;
+    if (startButton) startButton.disabled = !sellerPets.length || !sellerPetSelect.value;
+  }
+  if (list) {
+    const matchingConversations = conversations
+      .filter((item) => {
+        const otherName = item.buyerId === profile.id ? item.sellerName : item.buyerName;
+        return `${otherName || ''} ${item.petName || ''} ${item.messages?.at(-1)?.text || ''}`.toLowerCase().includes(search);
+      })
+      .sort((a, b) => {
+        const latestA = Date.parse(a.messages?.at(-1)?.sentAt || a.createdAt || '') || 0;
+        const latestB = Date.parse(b.messages?.at(-1)?.sentAt || b.createdAt || '') || 0;
+        return latestB - latestA;
+      });
+    const count = document.getElementById('conversationCount');
+    if (count) count.textContent = `${conversations.length} ${conversations.length === 1 ? 'conversation' : 'conversations'}`;
+    const unreadCount = conversations.reduce((total, item) => total + (item.id === activeConversationId ? 0 : Number(item.unreadCount || 0)), 0);
+    const badge = document.getElementById('messageBadge');
+    if (badge) badge.textContent = unreadCount ? String(unreadCount) : '';
+    list.innerHTML = matchingConversations.map((item) => {
+      const otherName = item.buyerId === profile.id ? item.sellerName : item.buyerName;
+      const lastMessage = item.messages?.at(-1);
+      const preview = (lastMessage?.text || 'Your conversation is ready').replace(/\s+/g, ' ');
+      const unread = Number(item.unreadCount || 0) > 0 && item.id !== activeConversationId;
+      const sentAt = lastMessage?.sentAt ? new Date(lastMessage.sentAt) : null;
+      const time = sentAt && !Number.isNaN(sentAt.getTime())
+        ? sentAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+        : '';
+      return `<button class="conversation${item.id === activeConversationId ? ' active' : ''}${unread ? ' unread' : ''}" data-conversation="${escapeHtml(item.id)}"><span class="message-avatar">${escapeHtml((otherName || 'P').slice(0, 1).toUpperCase())}</span><span class="conversation-copy"><span class="conversation-line"><strong>${escapeHtml(otherName || 'Paw Net member')}</strong><time>${escapeHtml(time)}</time></span><span class="conversation-pet">About ${escapeHtml(item.petName)}</span><span class="conversation-preview">${escapeHtml(preview)}</span></span>${unread ? '<span class="conversation-unread" aria-label="Unread message"></span>' : ''}</button>`;
+    }).join('');
+    if (!matchingConversations.length) {
+      const emptyTitle = messagingError ? 'Chat temporarily unavailable' : search ? 'No chats found' : 'No conversations yet';
+      const emptyMessage = messagingError
+        ? 'Start MySQL in XAMPP and import database/schema.sql, then refresh this page.'
+        : search
+        ? 'Try searching another name or pet.'
+        : sellerPets.length
+          ? 'Choose one of the available listings below to message its seller.'
+          : 'A different Paw Net member needs to publish an available pet before you can start a private chat.';
+      list.innerHTML = `<div class="conversation-empty"><span aria-hidden="true">${search ? '⌕' : '🐾'}</span><strong>${emptyTitle}</strong><p>${emptyMessage}</p></div>`;
+    }
+  }
+  const header = document.querySelector('.chat-header');
+  if (header) {
+    const otherName = active ? (active.buyerId === profile.id ? active.sellerName : active.buyerName) : '';
+    header.innerHTML = `<span class="message-avatar">${active ? escapeHtml((otherName || 'P').slice(0, 1).toUpperCase()) : '🐾'}</span><span class="chat-person"><strong>${active ? escapeHtml(otherName || 'Paw Net member') : 'Select a conversation'}</strong><span>${active ? `Chatting about ${escapeHtml(active.petName)}` : 'Private chat with a pet seller'}</span></span><span class="chat-header-status"><span></span> PRIVATE CHAT</span>`;
+  }
+  if (listingCard) {
+    if (active) {
+      const listing = active.listing || {};
+      listingCard.hidden = false;
+      listingCard.innerHTML = `<img src="${escapeHtml(listing.image || '')}" alt=""><span><small>ABOUT THIS PET</small><strong>${escapeHtml(active.petName)}</strong><span>${escapeHtml([listing.breed, listing.age ? `${listing.age} ${Number(listing.age) === 1 ? 'year' : 'years'}` : '', listing.sex].filter(Boolean).join(' · ') || 'Pet details are available in the listing')}</span></span><span class="listing-chat-status"><i></i> Adoption discussion</span>`;
+    } else {
+      listingCard.hidden = true;
+      listingCard.replaceChildren();
+    }
+  }
   if (messageInput) messageInput.disabled = !active;
-  if (sendButton) sendButton.disabled = !active;
-  if (!active) chat.innerHTML = '<p class="empty-state">Choose a conversation or start one about a seller-listed pet. Your messages will be sent directly to that seller.</p>';
-  else chat.innerHTML = (active.messages || []).map((message) => `<div class="bubble ${message.senderId === profile.id ? 'sent' : 'received'}">${escapeHtml(message.text).replace(/\n/g, '<br>')}</div>`).join('');
-  list?.querySelectorAll('[data-conversation]')?.forEach((button) => button.addEventListener('click', () => { activeConversationId = button.dataset.conversation; renderMessages(); }));
-  if (active) chat.scrollTop = chat.scrollHeight;
+  if (messageInput && !active) messageInput.placeholder = 'Choose a conversation to start chatting…';
+  if (messageInput && active) messageInput.placeholder = `Message ${active.buyerId === profile.id ? (active.sellerName || 'seller') : (active.buyerName || 'buyer')}…`;
+  if (sendButton) sendButton.disabled = !active || !messageInput?.value.trim();
+  const charCount = document.getElementById('messageCharCount');
+  if (charCount && messageInput) charCount.textContent = `${messageInput.value.length} / 2000`;
+  if (!active) {
+    chat.innerHTML = '<div class="chat-welcome"><span>🐾</span><h2>Your next friendship starts with hello.</h2><p>Choose an existing conversation or start a chat about a pet listed by another member.</p></div>';
+  } else {
+    chat.innerHTML = (active.messages || []).map((message) => {
+      const own = message.senderId === profile.id;
+      const senderName = own ? profile.name : (active.buyerId === profile.id ? active.sellerName : active.buyerName) || 'Paw Net member';
+      const sentAt = new Date(message.sentAt);
+      const time = Number.isNaN(sentAt.getTime()) ? '' : sentAt.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+      return `<article class="message-row ${own ? 'mine' : ''}"><span class="message-avatar">${escapeHtml((senderName || 'P').slice(0, 1).toUpperCase())}</span><div class="message-content"><span class="message-sender">${escapeHtml(own ? 'You' : message.senderName || senderName)}</span><div class="bubble ${own ? 'sent' : 'received'}">${escapeHtml(message.text).replace(/\n/g, '<br>')}</div><time>${escapeHtml(time)}</time></div></article>`;
+    }).join('') || '<p class="chat-no-messages">Say hello and start your adoption conversation.</p>';
+  }
+  list?.querySelectorAll('[data-conversation]')?.forEach((button) => button.addEventListener('click', async () => {
+    activeConversationId = button.dataset.conversation;
+    renderMessages();
+    try {
+      const result = await apiRequest('api/messages.php', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'read', conversationId: activeConversationId })
+      });
+      const index = conversations.findIndex((conversation) => conversation.id === activeConversationId);
+      if (index >= 0) conversations[index] = result.conversation;
+      renderMessages();
+    } catch (error) {
+      showToast(error.message || 'Unable to mark messages as read.');
+    }
+  }));
+  if (active && wasNearBottom) chat.scrollTop = chat.scrollHeight;
 }
 
 function renderSettings() {
@@ -227,23 +340,27 @@ function renderDashboardData(data) {
   renderMessages();
   renderSettings();
   document.getElementById('favoriteCount')?.replaceChildren(document.createTextNode(String(favorites.size)));
-const unread = conversations.reduce((n, c) => {
-  const last = c.messages?.[c.messages.length - 1];
-  return last && last.senderId !== profile.id ? n + 1 : n;
-}, 0);
-document.getElementById('messageBadge')?.replaceChildren(document.createTextNode(unread ? String(unread) : ''));seller-inbox.js}
+}
 
 async function loadDashboard() {
   try {
-    const [petData, dashboardData, messageData] = await Promise.all([
+    const [petData, dashboardData] = await Promise.all([
       apiRequest('api/pets.php'),
-      apiRequest('api/dashboard-data.php'),
-      apiRequest('api/messages.php')
+      apiRequest('api/dashboard-data.php')
     ]);
     pets = Array.isArray(petData) ? petData : (petData.pets || []);
-    conversations = messageData.conversations || [];
     document.getElementById('availablePetCount')?.replaceChildren(document.createTextNode(String(pets.length)));
     renderDashboardData(dashboardData);
+    try {
+      const messageData = await apiRequest('api/messages.php');
+      conversations = messageData.conversations || [];
+      messagingError = '';
+    } catch (error) {
+      conversations = [];
+      messagingError = error.message || 'Unable to connect to the messaging database.';
+    }
+    renderMessages();
+    if (messagingError) showToast(messagingError);
   } catch (error) {
     console.error(error);
     showToast(error.message || 'Unable to load your dashboard data.');
@@ -284,9 +401,10 @@ async function setFavorite(petName, favorite) {
   }
 }
 
-function openPet(petName) {
-  const pet = petByName(petName);
+function openPet(petIdentifier) {
+  const pet = pets.find((item) => item.id === petIdentifier) || petByName(petIdentifier);
   if (!pet) return;
+  selectedPet = pet;
   document.getElementById('modalPetImage').src = pet.image;
   document.getElementById('modalPetImage').alt = pet.name;
   document.getElementById('modalPetName').textContent = pet.name;
@@ -295,11 +413,16 @@ function openPet(petName) {
   const pickup = document.getElementById('modalPickupLocation');
   const inquiryWrap = document.getElementById('modalInquiryWrap');
   const inquiryText = document.getElementById('modalInquiryMessage');
+  const isOwnListing = Boolean(pet.ownerId && pet.ownerId === profile.id);
   pickup.hidden = !pet.ownerId;
-  pickup.textContent = pet.ownerId ? '📍 The seller’s pickup address will be included privately in your conversation.' : '';
-  inquiryWrap.hidden = !pet.ownerId;
+  pickup.textContent = isOwnListing
+    ? 'This is your listing. You can manage it from your seller dashboard.'
+    : pet.ownerId ? '📍 The seller’s pickup address will be included privately in your conversation.' : '';
+  inquiryWrap.hidden = !pet.ownerId || isOwnListing;
   inquiryText.value = pet.ownerId ? `Hi, I'm interested in adopting ${pet.name}. Could you tell me more about their health, personality, and routine, and let me know when we could arrange a meet-and-greet?` : '';
-  document.getElementById('modalApply').textContent = pet.ownerId ? 'Send adoption inquiry' : 'Apply to Adopt';
+  const applyButton = document.getElementById('modalApply');
+  applyButton.disabled = isOwnListing;
+  applyButton.textContent = isOwnListing ? 'Your listing' : pet.ownerId ? 'Send adoption inquiry' : 'Apply to Adopt';
   const favoriteButton = document.getElementById('modalFavorite');
   favoriteButton.textContent = favorites.has(pet.name) ? '♥ Saved' : '♡ Save Favorite';
   document.getElementById('petModal').classList.add('open');
@@ -333,9 +456,8 @@ function setupPetActions() {
   });
   document.getElementById('modalApply')?.addEventListener('click', async () => {
     const petName = document.getElementById('modalPetName')?.textContent;
-    if (!petName) return;
+    if (!petName || !selectedPet) return;
     try {
-      const selectedPet = petByName(petName);
       if (selectedPet?.ownerId && selectedPet.id) {
         const result = await apiRequest('api/messages.php', { method: 'POST', body: JSON.stringify({ action: 'start', petId: selectedPet.id, message: document.getElementById('modalInquiryMessage')?.value.trim() }) });
         const existingIndex = conversations.findIndex((conversation) => conversation.id === result.conversation.id);
@@ -348,7 +470,10 @@ function setupPetActions() {
         document.getElementById('petModal')?.classList.remove('open');
         return;
       }
-      await apiRequest('api/apply.php', { method: 'POST', body: JSON.stringify({ petName }) });
+      await apiRequest('api/apply.php', {
+        method: 'POST',
+        body: JSON.stringify(selectedPet.id ? { petId: selectedPet.id } : { petName })
+      });
       const result = await apiRequest('api/dashboard-data.php');
       applications = result.applications || [];
       renderApplications();
@@ -365,6 +490,29 @@ function setupFilters() {
   document.getElementById('petSearch')?.addEventListener('input', renderPetGrid);
   document.getElementById('typeFilter')?.addEventListener('change', renderPetGrid);
   document.getElementById('ageFilter')?.addEventListener('change', renderPetGrid);
+  document.getElementById('petSort')?.addEventListener('change', renderPetGrid);
+  document.querySelectorAll('[data-pet-type]').forEach((button) => {
+    button.addEventListener('click', () => {
+      document.getElementById('typeFilter').value = button.dataset.petType;
+      renderPetGrid();
+    });
+  });
+  document.getElementById('clearPetFilters')?.addEventListener('click', () => {
+    document.getElementById('petSearch').value = '';
+    document.getElementById('globalSearch').value = '';
+    document.getElementById('typeFilter').value = 'all';
+    document.getElementById('ageFilter').value = 'all';
+    document.getElementById('petSort').value = 'recommended';
+    renderPetGrid();
+  });
+  document.getElementById('surprisePet')?.addEventListener('click', () => {
+    const matches = filteredPets();
+    if (!matches.length) {
+      showToast('No pets match those filters yet. Try clearing a filter.');
+      return;
+    }
+    openPet(matches[Math.floor(Math.random() * matches.length)].name);
+  });
   document.getElementById('globalSearch')?.addEventListener('input', () => {
     const section = document.getElementById('find-pets');
     if (!section.classList.contains('active')) showSection('find-pets');
@@ -375,6 +523,31 @@ function setupFilters() {
 }
 
 function setupForms() {
+  const messageInput = document.getElementById('messageInput');
+  const messageForm = document.getElementById('messageForm');
+  const messageButton = messageForm?.querySelector('button[type="submit"]');
+  const updateComposer = () => {
+    if (!messageInput) return;
+    messageInput.style.height = 'auto';
+    messageInput.style.height = `${Math.min(messageInput.scrollHeight, 120)}px`;
+    const counter = document.getElementById('messageCharCount');
+    if (counter) counter.textContent = `${messageInput.value.length} / 2000`;
+    if (messageButton) messageButton.disabled = !activeConversationId || !messageInput.value.trim();
+  };
+  messageInput?.addEventListener('input', updateComposer);
+  messageInput?.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+      event.preventDefault();
+      messageForm?.requestSubmit();
+    }
+  });
+  document.getElementById('messagePetSelect')?.addEventListener('change', () => {
+    const select = document.getElementById('messagePetSelect');
+    const button = document.getElementById('startSellerConversation');
+    if (button) button.disabled = !select?.value;
+  });
+  document.getElementById('conversationSearch')?.addEventListener('input', renderMessages);
+
   document.getElementById('profileForm')?.addEventListener('submit', async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -418,9 +591,12 @@ function setupForms() {
       if (index >= 0) conversations[index] = result.conversation;
       else conversations.push(result.conversation);
       activeConversationId = result.conversation.id;
+      messagingError = '';
       renderMessages();
       showToast(result.message || 'Your inquiry was sent to the seller.');
     } catch (error) {
+      messagingError = error.message || 'Unable to start a conversation.';
+      renderMessages();
       showToast(error.message || 'Unable to send your inquiry to the seller.');
     } finally {
       button.disabled = false;
@@ -442,24 +618,38 @@ function setupForms() {
       const result = await apiRequest('api/messages.php', { method: 'POST', body: JSON.stringify({ action: 'reply', conversationId: activeConversationId, message }) });
       const index = conversations.findIndex((conversation) => conversation.id === activeConversationId);
       if (index >= 0) conversations[index] = result.conversation;
+      messagingError = '';
       input.value = '';
       renderMessages();
-      document.getElementById('messageBadge')?.replaceChildren(document.createTextNode(String(messages.length + conversations.length)));
     } catch (error) {
+      messagingError = error.message || 'Unable to send your message.';
+      renderMessages();
       showToast(error.message || 'Unable to send your message.');
     } finally {
-      submit.disabled = false;
+      submit.disabled = !activeConversationId || !input.value.trim();
     }
   });
 
   window.setInterval(async () => {
-    if (!document.getElementById('messages')?.classList.contains('active')) return;
     try {
       const result = await apiRequest('api/messages.php');
       conversations = result.conversations || [];
+      messagingError = '';
       renderMessages();
+      const inboxOpen = document.getElementById('messages')?.classList.contains('active');
+      const active = conversations.find((conversation) => conversation.id === activeConversationId);
+      if (inboxOpen && active && Number(active.unreadCount || 0) > 0) {
+        const readResult = await apiRequest('api/messages.php', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'read', conversationId: activeConversationId })
+        });
+        const index = conversations.findIndex((conversation) => conversation.id === activeConversationId);
+        if (index >= 0) conversations[index] = readResult.conversation;
+        renderMessages();
+      }
     } catch (error) {
-      showToast(error.message || 'Unable to refresh your conversations.');
+      messagingError = error.message || 'Unable to refresh your conversations.';
+      renderMessages();
     }
   }, 7000);
 

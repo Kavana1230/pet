@@ -1,11 +1,11 @@
 <?php
 require_once __DIR__ . '/auth_helpers.php';
 start_auth_session();
-
 if (empty($_SESSION['user'])) {
     header('Location: welcome.php');
     exit;
 }
+auth_require_role('buyer');
 
 $currentUser = $_SESSION['user'];
 $userName = trim((string) ($currentUser['name'] ?? 'Paw Net adopter'));
@@ -102,7 +102,7 @@ $initials = strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1));
                     <div class="avatar"><?= auth_escape($initials) ?></div>
                     <div class="user-summary">
                         <strong><?= auth_escape($userName) ?></strong>
-                        <span>Adopter</span>
+                        <span>Buyer</span>
                     </div>
                     <button class="chevron" id="profileMenuBtn">⌄</button>
                 </div>
@@ -114,13 +114,13 @@ $initials = strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1));
         </header>
 
         <section class="dashboard-section active" id="overview">
-            <div class="page-heading">
+            <div class="page-heading dashboard-hero">
                 <div>
-                    <p class="eyebrow">USER DASHBOARD</p>
+                    <p class="eyebrow">YOUR NEXT CHAPTER STARTS HERE</p>
                     <h1>Welcome back, <?= auth_escape($firstName) ?>! 👋</h1>
-                    <p>Here’s what’s happening with your adoption journey.</p>
+                    <p>A new best friend might be closer than you think. Explore pets waiting to meet you.</p>
                 </div>
-                <button class="primary-btn" data-section-target="find-pets">+ Find a Pet</button>
+                <button class="primary-btn" data-section-target="find-pets"><span aria-hidden="true">♡</span> Find your match</button>
             </div>
 
             <div class="stats-grid">
@@ -195,12 +195,34 @@ $initials = strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1));
 
         <section class="dashboard-section" id="find-pets">
             <div class="page-heading">
-                <div><p class="eyebrow">EXPLORE</p><h1>Find Your New Best Friend</h1><p>Browse pets looking for a loving home.</p></div>
+                <div><p class="eyebrow">MEET YOUR NEW SIDEKICK</p><h1>Find your new best friend</h1><p>Every profile is a chance to make a life-long connection.</p></div>
+                <button class="outline-btn" id="surprisePet" type="button">Surprise me <span aria-hidden="true">✦</span></button>
             </div>
             <div class="filter-bar">
-                <input type="search" id="petSearch" placeholder="Search by pet name or breed...">
-                <select id="typeFilter"><option value="all">Cats, Dogs & Hamsters</option><option value="dog">Dogs</option><option value="cat">Cats</option><option value="hamster">Hamsters</option></select>
-                <select id="ageFilter"><option value="all">Any Age</option><option value="young">0–2 years</option><option value="adult">3+ years</option></select>
+                <label class="catalog-search"><span aria-hidden="true">⌕</span><input type="search" id="petSearch" placeholder="Try a name, breed, or personality..."></label>
+                <select id="typeFilter" aria-label="Filter by animal"><option value="all">All companions</option><option value="dog">Dogs</option><option value="cat">Cats</option><option value="hamster">Hamsters</option></select>
+                <select id="ageFilter" aria-label="Filter by age"><option value="all">Any age</option><option value="young">0–2 years</option><option value="adult">3+ years</option></select>
+            </div>
+            <div class="catalog-toolbar">
+                <div class="species-chips" role="group" aria-label="Quick filter by animal">
+                    <button type="button" class="species-chip-button active" data-pet-type="all" aria-pressed="true">All pets</button>
+                    <button type="button" class="species-chip-button" data-pet-type="dog" aria-pressed="false">🐕 Dogs</button>
+                    <button type="button" class="species-chip-button" data-pet-type="cat" aria-pressed="false">🐈 Cats</button>
+                    <button type="button" class="species-chip-button" data-pet-type="hamster" aria-pressed="false">🐹 Hamsters</button>
+                </div>
+                <div class="catalog-options">
+                    <span id="petResultCount" role="status" aria-live="polite">Finding your matches…</span>
+                    <label>Sort
+                        <select id="petSort" aria-label="Sort pets">
+                            <option value="recommended">Recommended</option>
+                            <option value="name">Name: A to Z</option>
+                            <option value="youngest">Youngest first</option>
+                            <option value="oldest">Oldest first</option>
+                            <option value="newest">Recently listed</option>
+                        </select>
+                    </label>
+                    <button class="text-btn" id="clearPetFilters" type="button">Clear filters</button>
+                </div>
             </div>
             <div class="full-pet-grid" id="fullPetGrid"></div>
         </section>
@@ -250,23 +272,24 @@ $initials = strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1));
         </section>
 
         <section class="dashboard-section" id="messages">
-<<<<<<< HEAD
-            <div class="page-heading"><div><p class="eyebrow">COMMUNICATION</p><h1>Messages</h1><p>Talk with pet sellers about listings you are interested in.</p></div></div>
+            <div class="page-heading"><div><p class="eyebrow">YOUR ADOPTION CONVERSATIONS</p><h1>Messages</h1><p>Ask questions, get to know the pet, and plan a meet-and-greet with the seller.</p><p id="messageError" class="message-error" role="alert" hidden></p></div><span class="chat-refresh-label"><span aria-hidden="true"></span> Inbox refreshes automatically</span></div>
             <div class="message-layout">
-                <div class="panel conversation-list"><div class="new-seller-chat"><label for="messagePetSelect">Start a conversation about a pet</label><select id="messagePetSelect"><option value="">Choose a pet listed by a seller</option></select><button class="outline-btn" id="startSellerConversation" type="button">Message seller</button></div><div id="conversationContacts"><p class="empty-state">Choose a seller-listed pet above to start a conversation.</p></div></div>
+                <aside class="panel conversation-list">
+                    <div class="conversation-list-heading"><div><h2>Your chats</h2><span id="conversationCount">0 conversations</span></div><span class="chat-list-icon" aria-hidden="true">✉</span></div>
+                    <label class="conversation-search"><span aria-hidden="true">⌕</span><input id="conversationSearch" type="search" placeholder="Search conversations..." aria-label="Search conversations"></label>
+                    <div id="conversationContacts" class="conversation-contacts"><p class="empty-state">Your seller conversations will appear here.</p></div>
+                    <div class="new-seller-chat">
+                        <label for="messagePetSelect">Start a new chat</label>
+                        <select id="messagePetSelect"><option value="">Loading seller listings…</option></select>
+                        <button class="primary-btn" id="startSellerConversation" type="button" disabled>Message seller <span aria-hidden="true">→</span></button>
+                        <small>Choose a pet listed by another Paw Net member.</small>
+                    </div>
+                </aside>
                 <div class="panel chat-panel">
-                    <div class="chat-header"><div class="message-avatar">PN</div><div><strong>Paw Net Team</strong><span>Usually replies within a few hours</span></div></div>
-                    <div class="chat-messages" id="chatMessages"><p class="empty-state">Loading your conversation…</p></div>
-                    <form class="message-form" id="messageForm"><input id="messageInput" maxlength="2000" placeholder="Choose a conversation to message its contact" disabled><button type="submit" aria-label="Send message" disabled>➤</button></form>
-=======
-            <div class="page-heading"><div><p class="eyebrow">COMMUNICATION</p><h1>Messages</h1><p>Stay connected with the Paw Net adoption team.</p></div></div>
-            <div class="message-layout">
-                <div class="panel conversation-list"><div class="conversation active"><div class="message-avatar">PN</div><div><strong>Paw Net Team</strong><p>Adoption support</p><small>We’re here to help</small></div></div></div>
-                <div class="panel chat-panel">
-                    <div class="chat-header"><div class="message-avatar">PN</div><div><strong>Paw Net Team</strong><span>Usually replies within a few hours</span></div></div>
-                    <div class="chat-messages" id="chatMessages"><p class="empty-state">Loading your conversation…</p></div>
-                    <form class="message-form" id="messageForm"><input id="messageInput" maxlength="2000" placeholder="Type a message..."><button type="submit" aria-label="Send message">➤</button></form>
->>>>>>> 2fe54b1b48e42ea676b505281f68d6bd526c71b7
+                    <div class="chat-header"><div class="message-avatar">🐾</div><div><strong>Select a conversation</strong><span>Your messages go directly to the pet's seller.</span></div><span class="chat-header-status">PRIVATE CHAT</span></div>
+                    <div id="chatListingCard" class="chat-listing-card" hidden></div>
+                    <div class="chat-messages" id="chatMessages" aria-live="polite" aria-relevant="additions text"><div class="chat-welcome"><span>🐾</span><h2>Your next friendship starts with hello.</h2><p>Choose an existing conversation or start a chat about a pet listed by another member.</p></div></div>
+                    <form class="message-form" id="messageForm"><div class="message-compose"><textarea id="messageInput" maxlength="2000" rows="1" placeholder="Choose a conversation to start chatting…" aria-label="Write a message" disabled></textarea><div class="message-compose-meta"><span id="messageHint">Your messages are shared only with this listing's seller.</span><span id="messageCharCount">0 / 2000</span></div></div><button type="submit" aria-label="Send message" disabled><span aria-hidden="true">➤</span></button></form>
                 </div>
             </div>
         </section>
@@ -294,11 +317,8 @@ $initials = strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1));
             <h2 id="modalPetName">Pet</h2>
             <p id="modalPetMeta"></p>
             <p id="modalPetDescription">This lovely pet is looking for a caring family and a safe, loving home.</p>
-<<<<<<< HEAD
             <p id="modalPickupLocation" class="modal-pickup" hidden></p>
             <label id="modalInquiryWrap" class="modal-inquiry-wrap" hidden for="modalInquiryMessage">Your message to the seller<textarea id="modalInquiryMessage" maxlength="2000"></textarea><small>Pet details and the pickup location are included. You can add your questions.</small></label>
-=======
->>>>>>> 2fe54b1b48e42ea676b505281f68d6bd526c71b7
             <div class="modal-actions"><button class="outline-btn" id="modalFavorite">♡ Save Favorite</button><button class="primary-btn" id="modalApply">Apply to Adopt</button></div>
         </div>
     </div>

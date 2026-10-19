@@ -2,9 +2,10 @@
 require_once __DIR__ . '/auth_helpers.php';
 start_auth_session();
 if (empty($_SESSION['user']['id'])) {
-    header('Location: login.php');
+    header('Location: welcome.php');
     exit;
 }
+auth_redirect_for_role(auth_user_role($_SESSION['user']));
 ?>
 <!doctype html>
 <html lang="en"><head>

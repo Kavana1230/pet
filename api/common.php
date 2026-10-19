@@ -11,7 +11,7 @@ function api_respond(array $payload, int $status = 200): void
     exit;
 }
 
-function api_require_user(array $allowedMethods = ['GET']): array
+function api_require_user(array $allowedMethods = ['GET'], ?string $requiredRole = null): array
 {
     start_auth_session();
     header('Content-Type: application/json; charset=utf-8');
@@ -33,6 +33,21 @@ function api_require_user(array $allowedMethods = ['GET']): array
         }
     }
 
+    if ($requiredRole !== null) {
+        $userId = (string) $_SESSION['user']['id'];
+        foreach (load_auth_users() as $account) {
+            if (($account['id'] ?? '') === $userId) {
+                $role = auth_user_role($account);
+                $_SESSION['user']['role'] = $role;
+                if ($role !== $requiredRole) {
+                    api_respond(['success' => false, 'message' => 'This account does not have permission to use this feature.'], 403);
+                }
+                return $_SESSION['user'];
+            }
+        }
+        api_respond(['success' => false, 'message' => 'Account was not found. Please sign in again.'], 401);
+    }
+
     return $_SESSION['user'];
 }
 
@@ -49,13 +64,61 @@ function api_read_input(): array
 
 function api_read_json_file(string $path): array
 {
-    $contents = @file_get_contents($path);
+    $handle = @fopen($path, 'rb');
+    if ($handle === false) {
+        return [];
+    }
+
+    if (!flock($handle, LOCK_SH)) {
+        fclose($handle);
+        return [];
+    }
+
+    $contents = stream_get_contents($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
     if ($contents === false || trim($contents) === '') {
         return [];
     }
 
     $decoded = json_decode($contents, true);
     return is_array($decoded) ? $decoded : [];
+}
+
+function api_update_json_file(string $path, callable $updater): bool
+{
+    $handle = @fopen($path, 'c+');
+    if ($handle === false || !flock($handle, LOCK_EX)) {
+        if (is_resource($handle)) {
+            fclose($handle);
+        }
+        return false;
+    }
+
+    rewind($handle);
+    $contents = stream_get_contents($handle);
+    $data = $contents === false || trim($contents) === '' ? [] : json_decode($contents, true);
+    if (!is_array($data)) {
+        flock($handle, LOCK_UN);
+        fclose($handle);
+        return false;
+    }
+
+    $updated = $updater($data);
+    $encoded = is_array($updated)
+        ? json_encode($updated, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE)
+        : false;
+    if ($encoded === false) {
+        flock($handle, LOCK_UN);
+        fclose($handle);
+        return false;
+    }
+
+    rewind($handle);
+    $written = ftruncate($handle, 0) && fwrite($handle, $encoded . PHP_EOL) !== false && fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    return $written;
 }
 
 function api_write_json_file(string $path, array $data): bool
@@ -89,5 +152,6 @@ function api_sync_session_user(array $user): void
         'email' => $user['email'] ?? '',
         'phone' => $user['phone'] ?? '',
         'address' => $user['address'] ?? '',
+        'role' => auth_user_role($user),
     ];
 }

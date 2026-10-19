@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/common.php';
-$sessionUser = api_require_user(['GET', 'POST']);
+$sessionUser = api_require_user(['GET', 'POST'], 'buyer');
 $userId = (string) $sessionUser['id'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {

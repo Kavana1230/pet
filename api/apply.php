@@ -1,26 +1,30 @@
 <?php
 require_once __DIR__ . '/common.php';
-$user = api_require_user(['POST']);
+$user = api_require_user(['POST'], 'buyer');
 $input = api_read_input();
+$petId = is_string($input['petId'] ?? null) ? trim($input['petId']) : '';
 $petName = is_string($input['petName'] ?? null) ? trim($input['petName']) : '';
-if ($petName === '') {
+if ($petId === '' && $petName === '') {
     api_respond(['success' => false, 'message' => 'Pet name is required.'], 400);
 }
 
 $pets = api_read_json_file(__DIR__ . '/../data/pets.json');
 $pet = null;
 foreach ($pets as $availablePet) {
-<<<<<<< HEAD
-    if (($availablePet['name'] ?? '') === $petName && ($availablePet['status'] ?? 'available') !== 'sold' && in_array(strtolower($availablePet['type'] ?? ''), ['cat', 'dog', 'hamster'], true)) {
-=======
-    if (($availablePet['name'] ?? '') === $petName && in_array(strtolower($availablePet['type'] ?? ''), ['cat', 'dog', 'hamster'], true)) {
->>>>>>> 2fe54b1b48e42ea676b505281f68d6bd526c71b7
+    $matchesPet = $petId !== ''
+        ? ($availablePet['id'] ?? '') === $petId
+        : ($availablePet['name'] ?? '') === $petName;
+    if ($matchesPet && ($availablePet['status'] ?? 'available') !== 'sold' && in_array(strtolower($availablePet['type'] ?? ''), ['cat', 'dog', 'hamster'], true)) {
         $pet = $availablePet;
         break;
     }
 }
 if ($pet === null) {
     api_respond(['success' => false, 'message' => 'That pet is not available for adoption.'], 404);
+}
+$petName = (string) $pet['name'];
+if (!empty($pet['ownerId']) && (string) $pet['ownerId'] === (string) $user['id']) {
+    api_respond(['success' => false, 'message' => 'You cannot apply to adopt your own listing.'], 403);
 }
 
 $dataFile = __DIR__ . '/../data/applications.json';

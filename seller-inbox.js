@@ -56,10 +56,13 @@
     const container = document.getElementById('messageThreads');
     const notice = document.getElementById('replyNotice');
     if (!container || !notice) return;
-    const waiting = conversations.filter((conversation) => conversation.messages?.at(-1)?.senderId !== sellerId).length;
+    const waiting = conversations.filter((conversation) => Number(conversation.unreadCount || 0) > 0).length;
+    const unreadMessages = conversations.reduce((total, conversation) => total + Number(conversation.unreadCount || 0), 0);
     const badge = document.getElementById('messageCount');
-    if (badge) badge.textContent = waiting || '';
-    notice.textContent = waiting ? `${waiting} buyer${waiting === 1 ? '' : 's'} waiting for your reply` : 'All conversations up to date';
+    if (badge) badge.textContent = unreadMessages || '';
+    notice.textContent = waiting
+      ? `${unreadMessages} unread message${unreadMessages === 1 ? '' : 's'} from ${waiting} buyer${waiting === 1 ? '' : 's'}`
+      : 'All conversations up to date';
     notice.classList.toggle('pending', waiting > 0);
 
     if (!conversations.length) {
@@ -72,16 +75,26 @@
     if (!conversations.some((conversation) => conversation.id === activeId)) activeId = conversations[conversations.length - 1].id;
     container.innerHTML = conversations.slice().reverse().map((conversation) => {
       const latest = conversation.messages?.at(-1) || {};
-      const needsReply = latest.senderId !== sellerId;
+      const needsReply = Number(conversation.unreadCount || 0) > 0;
       return `<button class="inbox-thread ${conversation.id === activeId ? 'active' : ''}" data-conversation-id="${escapeHtml(conversation.id)}"><span class="stat-icon">${escapeHtml((conversation.buyerName || 'B').slice(0, 1).toUpperCase())}</span><span class="inbox-thread-copy"><b>${escapeHtml(conversation.buyerName)} · ${escapeHtml(conversation.petName)}</b><small>${escapeHtml(latest.text || 'New inquiry')}</small></span>${needsReply ? '<em>New</em>' : ''}</button>`;
     }).join('');
     container.querySelectorAll('[data-conversation-id]').forEach((button) => {
       button.addEventListener('click', () => {
         activeId = button.dataset.conversationId;
         drawThreads();
+        markRead(activeId).catch((error) => {
+          notice.textContent = error.message;
+        });
       });
     });
     drawConversation();
+  }
+
+  async function markRead(conversationId) {
+    const result = await request({ action: 'read', conversationId });
+    const index = conversations.findIndex((conversation) => conversation.id === conversationId);
+    if (index >= 0) conversations[index] = result.conversation;
+    drawThreads();
   }
 
   async function loadMessages(showError = true) {
@@ -89,6 +102,10 @@
       const result = await request();
       conversations = result.conversations || [];
       drawThreads();
+      const active = conversations.find((conversation) => conversation.id === activeId);
+      if (document.getElementById('messages')?.classList.contains('active') && Number(active?.unreadCount || 0) > 0) {
+        await markRead(activeId);
+      }
     } catch (error) {
       const notice = document.getElementById('replyNotice');
       if (notice && showError) notice.textContent = error.message;
@@ -118,15 +135,6 @@
   });
 
   loadMessages();
-  window.setInterval(() => loadMessages(false), 5000);
-
-  // Immediate refresh when switching to Messages view
-  document.querySelectorAll('[data-view="messages"]').forEach((button) => {
-    button.addEventListener('click', () => loadMessages(false));
-  });
-
-  // Refresh when the tab regains focus
-  window.addEventListener('focus', () => loadMessages(false));
-
+  window.setInterval(() => loadMessages(false), 7000);
   window.loadSellerMessages = loadMessages;
 })();

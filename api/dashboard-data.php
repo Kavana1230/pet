@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/common.php';
-$sessionUser = api_require_user(['GET']);
+$sessionUser = api_require_user(['GET'], 'buyer');
 $userId = (string) $sessionUser['id'];
 $users = load_auth_users();
 $currentUser = null;

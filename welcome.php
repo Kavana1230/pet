@@ -3,8 +3,7 @@ require_once __DIR__ . '/auth_helpers.php';
 start_auth_session();
 
 if (!empty($_SESSION['user'])) {
-    header('Location: index.php');
-    exit;
+    auth_redirect_for_role(auth_user_role($_SESSION['user']));
 }
 ?>
 <!DOCTYPE html>
@@ -33,16 +32,13 @@ if (!empty($_SESSION['user'])) {
         <section class="auth-content">
             <div class="choice-card">
                 <span class="eyebrow">WELCOME TO PAW NET</span>
-                <h2>Let’s get you started.</h2>
-                <p class="auth-subtitle">Choose an option to continue to your personal adoption dashboard.</p>
-                <a class="auth-submit choice-primary" href="login.php">Sign in to your account <span>→</span></a>
-                <a class="choice-secondary" href="register.php">Create a new account <span>↗</span></a>
-                <div class="choice-divider"><span>YOUR JOURNEY INCLUDES</span></div>
-                <ul class="choice-benefits">
-                    <li><span>✓</span> Discover a growing collection of pets</li>
-                    <li><span>✓</span> Save favorites and track applications</li>
-                    <li><span>✓</span> Keep your profile and preferences together</li>
-                </ul>
+                <h2>Choose your account type.</h2>
+                <p class="auth-subtitle">Buyers and sellers have separate accounts, sign-in paths, and dashboards.</p>
+                <a class="auth-submit choice-primary" href="login.php?role=buyer">Buyer sign in <span>→</span></a>
+                <a class="choice-secondary" href="register.php?role=buyer">Create a buyer account <span>↗</span></a>
+                <div class="choice-divider"><span>LISTING A PET?</span></div>
+                <a class="auth-submit choice-primary" href="login.php?role=seller">Seller sign in <span>→</span></a>
+                <a class="choice-secondary" href="register.php?role=seller">Create a seller account <span>↗</span></a>
                 <p class="choice-footnote">A safe, friendly place to find your new companion.</p>
             </div>
             <footer>Your Paw Net account keeps your adoption activity in one place.</footer>
