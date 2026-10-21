@@ -1,36 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
+require_once __DIR__ . '/../config/db.php';
+
 function api_message_database(): PDO
 {
-    static $connection;
-    if ($connection instanceof PDO) {
-        return $connection;
-    }
-
-    $config = require __DIR__ . '/../config/database.php';
-    $dsn = sprintf(
-        'mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4',
-        $config['host'],
-        $config['port'],
-        $config['database']
-    );
-
-    try {
-        $connection = new PDO($dsn, $config['username'], $config['password'], [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES => false,
-        ]);
-    } catch (PDOException $error) {
-        error_log('Paw Net messaging database connection failed: ' . $error->getMessage());
-        throw new RuntimeException(
-            'Messaging is temporarily unavailable. Start MySQL in XAMPP and import database/schema.sql.',
-            0,
-            $error
-        );
-    }
-
-    return $connection;
+    return pawnet_db();
 }
 
 function api_message_conversation(PDO $database, string $conversationId, string $userId): ?array
@@ -75,20 +51,86 @@ function api_message_conversation(PDO $database, string $conversationId, string 
         ];
     }
 
-    $listing = json_decode((string) $row['listing_json'], true);
+    $historicalListing = json_decode((string) $row['listing_json'], true);
+    if (!is_array($historicalListing)) {
+        $historicalListing = [];
+    }
+
+    // Fetch the LIVE pet record from the database to ensure latest details (fixes Bug A)
+    $petQuery = $database->prepare('
+        SELECT p.id, p.name, p.breed, p.type, p.sex, p.age, p.price, p.description,
+               p.pickup_location AS pickupLocation, p.status, p.health_info AS healthInfo,
+               p.vaccination_status AS vaccinationStatus,
+               COALESCE(
+                   (SELECT pi.image_url FROM pet_images pi WHERE pi.pet_id = p.id AND pi.is_primary = 1 LIMIT 1),
+                   (SELECT pi.image_url FROM pet_images pi WHERE pi.pet_id = p.id ORDER BY pi.sort_order ASC LIMIT 1),
+                   "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=900&q=80"
+               ) AS image
+        FROM pets p
+        WHERE p.id = :pet_id
+    ');
+    $petQuery->execute(['pet_id' => $row['pet_id']]);
+    $livePet = $petQuery->fetch();
+
+    $currentListing = $historicalListing;
+    if ($livePet) {
+        $currentListing = [
+            'name' => (string) $livePet['name'],
+            'breed' => (string) $livePet['breed'],
+            'type' => (string) $livePet['type'],
+            'sex' => ucfirst(strtolower((string) $livePet['sex'])),
+            'age' => (int) $livePet['age'],
+            'price' => (float) $livePet['price'],
+            'description' => (string) $livePet['description'],
+            'image' => (string) $livePet['image'],
+            'pickupLocation' => (string) $livePet['pickupLocation'],
+            'status' => (string) $livePet['status'],
+            'healthInfo' => (string) ($livePet['healthInfo'] ?? ''),
+            'vaccinationStatus' => (string) ($livePet['vaccinationStatus'] ?? ''),
+        ];
+    }
+
+    // Fetch corresponding application record
+    $appQuery = $database->prepare('
+        SELECT id, status, notes, meeting_confirmed_at, created_at
+        FROM applications
+        WHERE pet_id = :pet_id AND buyer_id = :buyer_id
+        LIMIT 1
+    ');
+    $appQuery->execute([
+        'pet_id' => $row['pet_id'],
+        'buyer_id' => $row['buyer_id'],
+    ]);
+    $appRow = $appQuery->fetch();
+
+    $appStatus = $appRow ? (string) $appRow['status'] : 'pending';
+    $appId = $appRow ? (string) $appRow['id'] : null;
+
+    // A buyer cannot send further messages if application is rejected (Bug C requirement)
+    $isBuyer = ($userId === $row['buyer_id']);
+    $canReply = !($isBuyer && $appStatus === 'rejected');
+
     return [
         'id' => $row['id'],
         'petId' => $row['pet_id'],
-        'petName' => $row['pet_name'],
+        'petName' => $livePet ? (string) $livePet['name'] : (string) $row['pet_name'],
         'buyerId' => $row['buyer_id'],
         'buyerName' => $row['buyer_name'],
         'sellerId' => $row['seller_id'],
         'sellerName' => $row['seller_name'],
         'participants' => [$row['buyer_id'], $row['seller_id']],
-        'listing' => is_array($listing) ? $listing : [],
+        'listing' => $currentListing,
+        'originalListing' => $historicalListing,
         'createdAt' => gmdate('Y-m-d\TH:i:s\Z', strtotime($row['created_at'] . ' UTC')),
-        'status' => 'discussion',
+        'status' => $appStatus,
         'unreadCount' => (int) $row['unread_count'],
         'messages' => $messages,
+        'application' => $appRow ? [
+            'id' => $appRow['id'],
+            'status' => $appRow['status'],
+            'meetingConfirmedAt' => $appRow['meeting_confirmed_at'],
+            'createdAt' => $appRow['created_at'],
+        ] : null,
+        'canReply' => $canReply,
     ];
 }

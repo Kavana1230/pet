@@ -1,0 +1,18 @@
+[
+    {
+        "id": "f7d03a76e0fbf1506396a780",
+        "ownerId": "380ad8860fbf0d20913e568ed334cc85",
+        "status": "sold",
+        "name": "max",
+        "breed": "abc",
+        "type": "hamster",
+        "sex": "female",
+        "age": 1,
+        "image": "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=900&q=80",
+        "description": "i really dont know its just testing purpose",
+        "pickupLocation": "abcxyz",
+        "createdAt": "2026-10-21T01:49:58+02:00",
+        "updatedAt": "2026-10-21T01:54:06+02:00",
+        "soldAt": "2026-10-21T02:00:55+02:00"
+    }
+]

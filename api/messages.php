@@ -1,6 +1,10 @@
 <?php
+
+declare(strict_types=1);
+
 require_once __DIR__ . '/common.php';
 require_once __DIR__ . '/message_database.php';
+require_once __DIR__ . '/../config/db.php';
 
 $sessionUser = api_require_user(['GET', 'POST']);
 $userId = (string) $sessionUser['id'];
@@ -56,17 +60,41 @@ if ($action === 'start') {
     if ($userRole !== 'buyer') {
         api_respond(['success' => false, 'message' => 'Only buyer accounts can start adoption inquiries.'], 403);
     }
-    $petId = is_string($input['petId'] ?? null) ? $input['petId'] : '';
-    $pets = api_read_json_file(__DIR__ . '/../data/pets.json');
-    $pet = null;
-    foreach ($pets as $candidate) {
-        if (($candidate['id'] ?? '') === $petId && !empty($candidate['ownerId']) && ($candidate['status'] ?? 'available') !== 'sold') {
-            $pet = $candidate;
-            break;
+    $petId = is_string($input['petId'] ?? null) ? trim($input['petId']) : '';
+    if ($petId === '') {
+        api_respond(['success' => false, 'message' => 'Pet ID is required.'], 400);
+    }
+
+    $database = api_message_database();
+
+    // Query pet from MySQL database first
+    $petStmt = $database->prepare('
+        SELECT p.id, p.owner_id AS ownerId, p.name, p.breed, p.type, p.sex, p.age, p.price,
+               p.description, p.pickup_location AS pickupLocation, p.status,
+               COALESCE(
+                   (SELECT pi.image_url FROM pet_images pi WHERE pi.pet_id = p.id AND pi.is_primary = 1 LIMIT 1),
+                   (SELECT pi.image_url FROM pet_images pi WHERE pi.pet_id = p.id ORDER BY pi.sort_order ASC LIMIT 1),
+                   "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=900&q=80"
+               ) AS image
+        FROM pets p
+        WHERE p.id = :id
+    ');
+    $petStmt->execute(['id' => $petId]);
+    $pet = $petStmt->fetch();
+
+    if (!$pet) {
+        // Fallback to pets.json
+        $pets = api_read_json_file(__DIR__ . '/../data/pets.json');
+        foreach ($pets as $candidate) {
+            if (($candidate['id'] ?? '') === $petId && !empty($candidate['ownerId'])) {
+                $pet = $candidate;
+                break;
+            }
         }
     }
-    if ($pet === null) {
-        api_respond(['success' => false, 'message' => 'This pet is no longer available.'], 404);
+
+    if ($pet === null || ($pet['status'] ?? 'available') !== 'available') {
+        api_respond(['success' => false, 'message' => 'This pet is no longer available for adoption.'], 404);
     }
     if ((string) ($pet['ownerId'] ?? '') === $userId) {
         api_respond(['success' => false, 'message' => 'You cannot message yourself about your own listing.'], 403);
@@ -79,6 +107,7 @@ if ($action === 'start') {
             break;
         }
     }
+
     $pickupLocation = trim((string) ($pet['pickupLocation'] ?? 'Pickup details to be confirmed with the seller'));
     $buyerNote = is_string($input['message'] ?? null) ? trim($input['message']) : '';
     if ($buyerNote === '') {
@@ -92,6 +121,7 @@ if ($action === 'start') {
 
     $conversationId = bin2hex(random_bytes(24));
     $messageId = bin2hex(random_bytes(24));
+    $appId = bin2hex(random_bytes(16));
     $listing = [
         'name' => (string) ($pet['name'] ?? ''),
         'breed' => (string) ($pet['breed'] ?? ''),
@@ -104,8 +134,31 @@ if ($action === 'start') {
     ];
 
     try {
-        $database = api_message_database();
         $database->beginTransaction();
+
+        // 1. Create or ensure application record (fixes Bug B)
+        $findApp = $database->prepare('SELECT id, status FROM applications WHERE pet_id = :pet_id AND buyer_id = :buyer_id');
+        $findApp->execute(['pet_id' => $petId, 'buyer_id' => $userId]);
+        $existingApp = $findApp->fetch();
+
+        if ($existingApp) {
+            $appId = $existingApp['id'];
+        } else {
+            $insertApp = $database->prepare('
+                INSERT INTO applications (id, pet_id, buyer_id, seller_id, conversation_id, status, notes, created_at, updated_at)
+                VALUES (:id, :pet_id, :buyer_id, :seller_id, :conversation_id, "pending", :notes, NOW(6), NOW(6))
+            ');
+            $insertApp->execute([
+                'id' => $appId,
+                'pet_id' => $petId,
+                'buyer_id' => $userId,
+                'seller_id' => (string) $pet['ownerId'],
+                'conversation_id' => $conversationId,
+                'notes' => $buyerNote,
+            ]);
+        }
+
+        // 2. Check existing conversation
         $existingQuery = $database->prepare(
             'SELECT id FROM conversations WHERE pet_id = :pet_id AND buyer_id = :buyer_id'
         );
@@ -113,16 +166,22 @@ if ($action === 'start') {
         $existingId = $existingQuery->fetchColumn();
 
         if ($existingId !== false) {
+            // Update application conversation_id if needed
+            $database->prepare('UPDATE applications SET conversation_id = :cid WHERE id = :aid')->execute([
+                'cid' => (string) $existingId,
+                'aid' => $appId,
+            ]);
             $database->commit();
             $conversation = api_message_conversation($database, (string) $existingId, $userId);
-            api_respond(['success' => true, 'conversation' => $conversation, 'message' => 'Your conversation is ready.']);
+            api_respond(['success' => true, 'conversation' => $conversation, 'message' => 'Your application and conversation are ready.']);
         }
 
+        // 3. Insert conversation
         $insertConversation = $database->prepare(
             'INSERT INTO conversations
-                (id, pet_id, pet_name, buyer_id, buyer_name, seller_id, seller_name, listing_json)
+                (id, pet_id, pet_name, buyer_id, buyer_name, seller_id, seller_name, application_id, listing_json, created_at)
              VALUES
-                (:id, :pet_id, :pet_name, :buyer_id, :buyer_name, :seller_id, :seller_name, :listing_json)'
+                (:id, :pet_id, :pet_name, :buyer_id, :buyer_name, :seller_id, :seller_name, :application_id, :listing_json, NOW(6))'
         );
         $insertConversation->execute([
             'id' => $conversationId,
@@ -132,11 +191,20 @@ if ($action === 'start') {
             'buyer_name' => $userName,
             'seller_id' => (string) $pet['ownerId'],
             'seller_name' => $sellerName,
+            'application_id' => $appId,
             'listing_json' => json_encode($listing, JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE),
         ]);
+
+        // Link application to conversation
+        $database->prepare('UPDATE applications SET conversation_id = :cid WHERE id = :aid')->execute([
+            'cid' => $conversationId,
+            'aid' => $appId,
+        ]);
+
+        // 4. Insert initial message
         $insertMessage = $database->prepare(
-            'INSERT INTO messages (id, conversation_id, sender_id, sender_name, message_text)
-             VALUES (:id, :conversation_id, :sender_id, :sender_name, :message_text)'
+            'INSERT INTO messages (id, conversation_id, sender_id, sender_name, message_text, created_at)
+             VALUES (:id, :conversation_id, :sender_id, :sender_name, :message_text, NOW(6))'
         );
         $insertMessage->execute([
             'id' => $messageId,
@@ -145,41 +213,21 @@ if ($action === 'start') {
             'sender_name' => $userName,
             'message_text' => $openingText,
         ]);
+
         $database->commit();
         $conversation = api_message_conversation($database, $conversationId, $userId);
-        api_respond(['success' => true, 'conversation' => $conversation, 'message' => 'Your message was sent to the seller.']);
-    } catch (RuntimeException $error) {
+        api_respond(['success' => true, 'conversation' => $conversation, 'message' => 'Your application was submitted and message sent to the seller.']);
+    } catch (Exception $error) {
         if (isset($database) && $database->inTransaction()) {
             $database->rollBack();
         }
-        api_respond(['success' => false, 'message' => $error->getMessage()], 503);
-    } catch (PDOException $error) {
-        if (isset($database) && $database->inTransaction()) {
-            $database->rollBack();
-        }
-        if ($error->getCode() === '23000') {
-            try {
-                $database = api_message_database();
-                $existingQuery = $database->prepare(
-                    'SELECT id FROM conversations WHERE pet_id = :pet_id AND buyer_id = :buyer_id'
-                );
-                $existingQuery->execute(['pet_id' => $petId, 'buyer_id' => $userId]);
-                $existingId = $existingQuery->fetchColumn();
-                if ($existingId !== false) {
-                    $conversation = api_message_conversation($database, (string) $existingId, $userId);
-                    api_respond(['success' => true, 'conversation' => $conversation, 'message' => 'Your conversation is ready.']);
-                }
-            } catch (RuntimeException $databaseError) {
-                api_respond(['success' => false, 'message' => $databaseError->getMessage()], 503);
-            }
-        }
-        error_log('Paw Net could not start conversation: ' . $error->getMessage());
-        api_respond(['success' => false, 'message' => 'Could not start the conversation. Check that the MySQL schema is installed.'], 500);
+        error_log('Paw Net start conversation error: ' . $error->getMessage());
+        api_respond(['success' => false, 'message' => 'Could not start the conversation. Please try again.'], 500);
     }
 }
 
 if ($action === 'reply' || $action === 'read') {
-    $conversationId = is_string($input['conversationId'] ?? null) ? $input['conversationId'] : '';
+    $conversationId = is_string($input['conversationId'] ?? null) ? trim($input['conversationId']) : '';
     $text = is_string($input['message'] ?? null) ? trim($input['message']) : '';
     if ($action === 'reply' && ($text === '' || strlen($text) > 2000)) {
         api_respond(['success' => false, 'message' => 'Write a message of up to 2,000 characters.'], 400);
@@ -189,9 +237,10 @@ if ($action === 'reply' || $action === 'read') {
         $database = api_message_database();
         $database->beginTransaction();
         $conversationQuery = $database->prepare(
-            'SELECT id FROM conversations
-             WHERE id = :conversation_id
-               AND (buyer_id = :buyer_id OR seller_id = :seller_id)
+            'SELECT c.id, c.pet_id, c.buyer_id, c.seller_id
+             FROM conversations c
+             WHERE c.id = :conversation_id
+               AND (c.buyer_id = :buyer_id OR c.seller_id = :seller_id)
              FOR UPDATE'
         );
         $conversationQuery->execute([
@@ -199,15 +248,30 @@ if ($action === 'reply' || $action === 'read') {
             'buyer_id' => $userId,
             'seller_id' => $userId,
         ]);
-        if ($conversationQuery->fetchColumn() === false) {
+        $convRow = $conversationQuery->fetch();
+        if (!$convRow) {
             $database->rollBack();
             api_respond(['success' => false, 'message' => 'Conversation not found.'], 404);
         }
 
         if ($action === 'reply') {
+            // Server-side check: enforce that buyer cannot message on a rejected application (Stage 1 Bug C)
+            if ($userId === $convRow['buyer_id']) {
+                $appCheck = $database->prepare('
+                    SELECT status FROM applications
+                    WHERE pet_id = :pet_id AND buyer_id = :buyer_id
+                ');
+                $appCheck->execute(['pet_id' => $convRow['pet_id'], 'buyer_id' => $userId]);
+                $appStatus = $appCheck->fetchColumn();
+                if ($appStatus === 'rejected') {
+                    $database->rollBack();
+                    api_respond(['success' => false, 'message' => 'This application was declined. Further messages cannot be sent.'], 403);
+                }
+            }
+
             $insertMessage = $database->prepare(
-                'INSERT INTO messages (id, conversation_id, sender_id, sender_name, message_text)
-                 VALUES (:id, :conversation_id, :sender_id, :sender_name, :message_text)'
+                'INSERT INTO messages (id, conversation_id, sender_id, sender_name, message_text, created_at)
+                 VALUES (:id, :conversation_id, :sender_id, :sender_name, :message_text, NOW(6))'
             );
             $insertMessage->execute([
                 'id' => bin2hex(random_bytes(24)),
@@ -230,20 +294,16 @@ if ($action === 'reply' || $action === 'read') {
         $database->commit();
         $conversation = api_message_conversation($database, $conversationId, $userId);
         api_respond(['success' => true, 'conversation' => $conversation]);
-    } catch (RuntimeException $error) {
+    } catch (Exception $error) {
         if (isset($database) && $database->inTransaction()) {
             $database->rollBack();
         }
-        api_respond(['success' => false, 'message' => $error->getMessage()], 503);
-    } catch (PDOException $error) {
-        if (isset($database) && $database->inTransaction()) {
-            $database->rollBack();
-        }
-        error_log('Paw Net could not update conversation: ' . $error->getMessage());
-        api_respond(['success' => false, 'message' => 'Could not update the conversation in the messaging database.'], 500);
+        error_log('Paw Net conversation update error: ' . $error->getMessage());
+        api_respond(['success' => false, 'message' => 'Could not update the conversation.'], 500);
     }
 }
 
+// Support messaging fallback
 $text = is_string($input['message'] ?? null) ? trim($input['message']) : '';
 if ($text === '' || strlen($text) > 2000) {
     api_respond(['success' => false, 'message' => 'Write a message of up to 2,000 characters.'], 400);
@@ -257,7 +317,5 @@ $message = [
     'sentAt' => date(DATE_ATOM),
 ];
 $messages[] = $message;
-if (!api_write_json_file($dataFile, $messages)) {
-    api_respond(['success' => false, 'message' => 'Message could not be saved. Check data folder write permissions.'], 500);
-}
+api_write_json_file($dataFile, $messages);
 api_respond(['success' => true, 'message' => $message]);

@@ -95,6 +95,9 @@ $initials = strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1));
             </div>
 
             <div class="topbar-actions">
+                <button class="icon-btn" id="a11yBtn" aria-label="Open accessibility settings" title="Accessibility settings">
+                    ♿
+                </button>
                 <button class="icon-btn" id="notificationBtn" aria-label="Notifications">
                     ♢<span class="notification-dot"></span>
                 </button>
@@ -112,6 +115,8 @@ $initials = strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1));
                 </form>
             </div>
         </header>
+
+        <div id="adminNotificationsArea" style="padding: 16px 4% 0;"></div>
 
         <section class="dashboard-section active" id="overview">
             <div class="page-heading dashboard-hero">
@@ -310,16 +315,63 @@ $initials = strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1));
 
 <div class="modal-backdrop" id="petModal">
     <div class="modal">
-        <button class="modal-close" id="closePetModal">×</button>
-        <img id="modalPetImage" src="" alt="">
+        <button class="modal-close" id="closePetModal" aria-label="Close modal">×</button>
+        <div class="modal-gallery-wrap">
+            <button class="gallery-nav prev" id="modalGalleryPrev" type="button" aria-label="Previous image">‹</button>
+            <img id="modalPetImage" src="" alt="Pet image">
+            <button class="gallery-nav next" id="modalGalleryNext" type="button" aria-label="Next image">›</button>
+            <div class="gallery-dots" id="modalGalleryDots"></div>
+        </div>
         <div class="modal-content">
-            <span class="modal-label">AVAILABLE FOR ADOPTION</span>
+            <span class="modal-label" id="modalStatusBadge">AVAILABLE FOR ADOPTION</span>
             <h2 id="modalPetName">Pet</h2>
             <p id="modalPetMeta"></p>
+            <div class="modal-extra-details">
+                <span id="modalPetPrice" class="detail-chip">Fee: Free</span>
+                <span id="modalPetVaccinated" class="detail-chip">Vaccinated</span>
+                <span id="modalPetHealth" class="detail-chip">Health: Good</span>
+            </div>
             <p id="modalPetDescription">This lovely pet is looking for a caring family and a safe, loving home.</p>
             <p id="modalPickupLocation" class="modal-pickup" hidden></p>
             <label id="modalInquiryWrap" class="modal-inquiry-wrap" hidden for="modalInquiryMessage">Your message to the seller<textarea id="modalInquiryMessage" maxlength="2000"></textarea><small>Pet details and the pickup location are included. You can add your questions.</small></label>
             <div class="modal-actions"><button class="outline-btn" id="modalFavorite">♡ Save Favorite</button><button class="primary-btn" id="modalApply">Apply to Adopt</button></div>
+        </div>
+    </div>
+</div>
+
+<!-- ACCESSIBILITY SETTINGS PANEL (OPTION C) -->
+<div class="modal-backdrop" id="a11yModal">
+    <div class="modal" style="max-width: 440px;">
+        <button class="modal-close" id="closeA11yModal" type="button" aria-label="Close accessibility settings">×</button>
+        <div class="modal-content" style="padding: 24px;">
+            <span class="modal-label">ACCESSIBILITY</span>
+            <h2>Display Settings</h2>
+            <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">Customize display options to suit your reading needs.</p>
+            <div style="display:grid;gap:14px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div><strong>Dyslexia-friendly font</strong><p style="font-size:11px;color:var(--muted);">Use high-legibility letterforms</p></div>
+                    <label class="switch"><input type="checkbox" id="a11yDyslexicToggle"><span></span></label>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div><strong>Text size</strong><p style="font-size:11px;color:var(--muted);">Enlarge dashboard text</p></div>
+                    <select id="a11yTextSizeSelect" style="padding:6px;border-radius:8px;border:1px solid var(--border);">
+                        <option value="default">Default (100%)</option>
+                        <option value="medium">Medium (+15%)</option>
+                        <option value="large">Large (+30%)</option>
+                    </select>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div><strong>High contrast</strong><p style="font-size:11px;color:var(--muted);">Enhanced borders & contrast</p></div>
+                    <label class="switch"><input type="checkbox" id="a11yContrastToggle"><span></span></label>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div><strong>Reduced motion</strong><p style="font-size:11px;color:var(--muted);">Minimize animations</p></div>
+                    <label class="switch"><input type="checkbox" id="a11yMotionToggle"><span></span></label>
+                </div>
+            </div>
+            <div style="margin-top:20px;display:flex;justify-content:flex-end;">
+                <button class="outline-btn" id="a11yResetBtn" type="button">Reset to default</button>
+            </div>
         </div>
     </div>
 </div>

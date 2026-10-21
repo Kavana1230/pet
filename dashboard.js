@@ -5,10 +5,13 @@ let messages = [];
 let conversations = [];
 let activeConversationId = '';
 let selectedPet = null;
+let currentGalleryImages = [];
+let currentGalleryIndex = 0;
 let messagingError = '';
 let profile = {};
 let settings = {};
 
+const A11Y_STORAGE_KEY = 'pawnet_a11y_prefs';
 const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content || '';
 
 async function apiRequest(url, options = {}) {
@@ -143,16 +146,36 @@ function renderApplications() {
   const rows = applications.map((application) => {
     const pet = petByName(application.petName) || application;
     const status = application.status || 'Under Review';
-    const statusClass = status.toLowerCase().includes('meet') || status === 'Approved' ? 'approved' : status === 'Completed' ? 'completed' : 'pending';
+    const statusClass = status.toLowerCase().includes('meet') || status === 'Approved' ? 'approved' : status === 'Completed' ? 'completed' : status.toLowerCase().includes('reject') ? 'rejected' : 'pending';
     const image = pet.image || 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=140&q=80';
     return `<tr>
       <td><div class="table-pet"><img src="${escapeHtml(image)}" alt="${escapeHtml(application.petName)}" loading="lazy"><span><strong>${escapeHtml(application.petName)}</strong><small>${escapeHtml(pet.breed || 'Adoption request')}</small></span></div></td>
       <td>${escapeHtml(formatDate(application.date))}</td><td><span class="status ${statusClass}">${escapeHtml(status)}</span></td>
-      <td>${escapeHtml(application.nextStep || 'Await review')}</td><td></td>
+      <td>${escapeHtml(application.nextStep || 'Await review')}</td>
+      <td>
+        <button class="outline-btn small" type="button" data-app-chat-petid="${escapeHtml(application.petId || '')}" data-app-chat-petname="${escapeHtml(application.petName || '')}" style="padding:4px 10px;font-size:12px;border-radius:6px;cursor:pointer;">Chat →</button>
+      </td>
     </tr>`;
   });
 
-  if (tableBody) tableBody.innerHTML = rows.length ? rows.slice().reverse().join('') : '<tr><td colspan="5" class="empty-state">No applications yet. Find a pet to get started.</td></tr>';
+  if (tableBody) {
+    tableBody.innerHTML = rows.length ? rows.slice().reverse().join('') : '<tr><td colspan="5" class="empty-state">No applications yet. Find a pet to get started.</td></tr>';
+    tableBody.querySelectorAll('[data-app-chat-petid]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const petId = btn.getAttribute('data-app-chat-petid');
+        const petName = btn.getAttribute('data-app-chat-petname');
+        const conv = conversations.find((c) => (petId && c.petId === petId) || (petName && c.petName === petName));
+        if (conv) {
+          activeConversationId = conv.id;
+          renderMessages();
+          showSection('messages');
+        } else {
+          showSection('messages');
+          showToast(`Open or start a conversation for ${petName} in the messages panel.`);
+        }
+      });
+    });
+  }
   if (recent) {
     recent.innerHTML = applications.length ? applications.slice().reverse().slice(0, 3).map((application) => {
       const pet = petByName(application.petName) || application;
@@ -284,22 +307,64 @@ function renderMessages() {
       listingCard.replaceChildren();
     }
   }
-  if (messageInput) messageInput.disabled = !active;
-  if (messageInput && !active) messageInput.placeholder = 'Choose a conversation to start chatting…';
-  if (messageInput && active) messageInput.placeholder = `Message ${active.buyerId === profile.id ? (active.sellerName || 'seller') : (active.buyerName || 'buyer')}…`;
-  if (sendButton) sendButton.disabled = !active || !messageInput?.value.trim();
+  const canReply = active ? active.canReply !== false && (active.status || '').toLowerCase() !== 'rejected' : false;
+  if (messageInput) {
+    messageInput.disabled = !active || !canReply;
+    if (!active) {
+      messageInput.placeholder = 'Choose a conversation to start chatting…';
+    } else if (!canReply) {
+      messageInput.placeholder = 'Application declined · Conversation closed';
+    } else {
+      messageInput.placeholder = `Message ${active.buyerId === profile.id ? (active.sellerName || 'seller') : (active.buyerName || 'buyer')}…`;
+    }
+  }
+  if (sendButton) sendButton.disabled = !active || !canReply || !messageInput?.value.trim();
   const charCount = document.getElementById('messageCharCount');
   if (charCount && messageInput) charCount.textContent = `${messageInput.value.length} / 2000`;
+
+  let statusBannerHtml = '';
+  if (active) {
+    const st = (active.status || '').toLowerCase();
+    if (!canReply || st === 'rejected') {
+      statusBannerHtml = `<div class="chat-status-notice rejected" style="background:#fee2e2;color:#991b1b;border:1px solid #fecaca;padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:13px;display:flex;align-items:center;gap:8px;"><span>❌</span><span><strong>Application Declined:</strong> The seller decided not to proceed. This conversation is archived for reference.</span></div>`;
+    } else if (st === 'accepted') {
+      statusBannerHtml = `<div class="chat-status-notice accepted" style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:13px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;"><span>🎉 <strong>Application Accepted!</strong> The seller approved your request. Confirm your meet & greet:</span><button class="primary-btn small" id="confirmMeetingBtn" type="button" style="padding:6px 14px;font-size:12px;white-space:nowrap;cursor:pointer;">📅 Confirm Meeting</button></div>`;
+    } else if (st === 'meeting_confirmed') {
+      statusBannerHtml = `<div class="chat-status-notice confirmed" style="background:#e0e7ff;color:#3730a3;border:1px solid #c7d2fe;padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:13px;display:flex;align-items:center;gap:8px;"><span>🤝</span><span><strong>Meet & Greet Confirmed!</strong> Listing is reserved while you meet. Arrange pickup time and place here.</span></div>`;
+    } else if (st === 'completed') {
+      statusBannerHtml = `<div class="chat-status-notice completed" style="background:#f3e8ff;color:#6b21a8;border:1px solid #e9d5ff;padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:13px;display:flex;align-items:center;gap:8px;"><span>🏠</span><span><strong>Adoption Completed!</strong> Congratulations on your new companion!</span></div>`;
+    }
+  }
+
   if (!active) {
     chat.innerHTML = '<div class="chat-welcome"><span>🐾</span><h2>Your next friendship starts with hello.</h2><p>Choose an existing conversation or start a chat about a pet listed by another member.</p></div>';
   } else {
-    chat.innerHTML = (active.messages || []).map((message) => {
+    const msgListHtml = (active.messages || []).map((message) => {
       const own = message.senderId === profile.id;
       const senderName = own ? profile.name : (active.buyerId === profile.id ? active.sellerName : active.buyerName) || 'Paw Net member';
       const sentAt = new Date(message.sentAt);
       const time = Number.isNaN(sentAt.getTime()) ? '' : sentAt.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
       return `<article class="message-row ${own ? 'mine' : ''}"><span class="message-avatar">${escapeHtml((senderName || 'P').slice(0, 1).toUpperCase())}</span><div class="message-content"><span class="message-sender">${escapeHtml(own ? 'You' : message.senderName || senderName)}</span><div class="bubble ${own ? 'sent' : 'received'}">${escapeHtml(message.text).replace(/\n/g, '<br>')}</div><time>${escapeHtml(time)}</time></div></article>`;
     }).join('') || '<p class="chat-no-messages">Say hello and start your adoption conversation.</p>';
+    chat.innerHTML = statusBannerHtml + msgListHtml;
+
+    document.getElementById('confirmMeetingBtn')?.addEventListener('click', async () => {
+      const appId = active.applicationId;
+      if (!appId) return;
+      const btn = document.getElementById('confirmMeetingBtn');
+      if (btn) btn.disabled = true;
+      try {
+        const res = await apiRequest('api/applications.php?action=confirm_meeting', {
+          method: 'POST',
+          body: JSON.stringify({ applicationId: appId })
+        });
+        showToast(res.message || 'Meeting confirmed! Listing reserved.');
+        await loadDashboard();
+      } catch (err) {
+        showToast(err.message || 'Unable to confirm meeting.');
+        if (btn) btn.disabled = false;
+      }
+    });
   }
   list?.querySelectorAll('[data-conversation]')?.forEach((button) => button.addEventListener('click', async () => {
     activeConversationId = button.dataset.conversation;
@@ -326,6 +391,25 @@ function renderSettings() {
   document.body.classList.toggle('dark', Boolean(settings.darkMode));
 }
 
+function renderAdminNotifications(adminMessages) {
+  const area = document.getElementById('adminNotificationsArea');
+  if (!area) return;
+  if (!Array.isArray(adminMessages) || !adminMessages.length) {
+    area.innerHTML = '';
+    return;
+  }
+  area.innerHTML = adminMessages.map((msg) => `
+    <div class="admin-warning-banner" style="background:#fffbeb;border:1px solid #fde68a;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:10px;margin-bottom:14px;display:flex;align-items:flex-start;gap:12px;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+      <span style="font-size:20px;line-height:1;" aria-hidden="true">⚠️</span>
+      <div style="flex:1;">
+        <strong style="color:#92400e;display:block;margin-bottom:3px;font-size:13px;">Official Notification from Paw Net Administration</strong>
+        <p style="color:#78350f;margin:0 0 4px;font-size:13px;line-height:1.4;">${escapeHtml(msg.message)}</p>
+        <small style="color:#b45309;font-size:11px;">Sent by ${escapeHtml(msg.sender_name || 'Admin')} · ${escapeHtml(formatDate(msg.created_at))}</small>
+      </div>
+    </div>
+  `).join('');
+}
+
 function renderDashboardData(data) {
   profile = data.profile || {};
   favorites = new Set(data.favorites || []);
@@ -333,6 +417,7 @@ function renderDashboardData(data) {
   messages = data.messages || [];
   settings = data.settings || {};
 
+  renderAdminNotifications(data.adminMessages);
   renderProfile();
   renderPetGrid();
   renderApplications();
@@ -401,15 +486,67 @@ async function setFavorite(petName, favorite) {
   }
 }
 
+function updateModalGallery() {
+  const imgEl = document.getElementById('modalPetImage');
+  const prevBtn = document.getElementById('modalGalleryPrev');
+  const nextBtn = document.getElementById('modalGalleryNext');
+  const dotsEl = document.getElementById('modalGalleryDots');
+  
+  if (imgEl && currentGalleryImages.length) {
+    imgEl.src = currentGalleryImages[currentGalleryIndex] || '';
+    imgEl.alt = `${selectedPet?.name || 'Pet'} photo ${currentGalleryIndex + 1} of ${currentGalleryImages.length}`;
+  }
+  const showNav = currentGalleryImages.length > 1;
+  if (prevBtn) prevBtn.style.display = showNav ? 'flex' : 'none';
+  if (nextBtn) nextBtn.style.display = showNav ? 'flex' : 'none';
+  if (dotsEl) {
+    if (showNav) {
+      dotsEl.innerHTML = currentGalleryImages.map((_, idx) => `<button type="button" class="gallery-dot${idx === currentGalleryIndex ? ' active' : ''}" data-gallery-dot="${idx}" aria-label="Go to image ${idx + 1}"></button>`).join('');
+      dotsEl.querySelectorAll('[data-gallery-dot]').forEach((d) => {
+        d.addEventListener('click', (e) => {
+          e.stopPropagation();
+          currentGalleryIndex = Number(d.dataset.galleryDot);
+          updateModalGallery();
+        });
+      });
+    } else {
+      dotsEl.innerHTML = '';
+    }
+  }
+}
+
 function openPet(petIdentifier) {
   const pet = pets.find((item) => item.id === petIdentifier) || petByName(petIdentifier);
   if (!pet) return;
   selectedPet = pet;
-  document.getElementById('modalPetImage').src = pet.image;
-  document.getElementById('modalPetImage').alt = pet.name;
+
+  const allImgs = Array.isArray(pet.images) && pet.images.length ? pet.images : (pet.image ? [pet.image] : []);
+  currentGalleryImages = allImgs.length ? allImgs : ['https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80'];
+  currentGalleryIndex = 0;
+  updateModalGallery();
+
   document.getElementById('modalPetName').textContent = pet.name;
   document.getElementById('modalPetMeta').textContent = `${pet.breed} · ${pet.age} ${pet.age === 1 ? 'year' : 'years'} old · ${pet.sex ? `${pet.sex[0].toUpperCase()}${pet.sex.slice(1)}` : 'Sex not specified'} · ${pet.type}`;
   document.getElementById('modalPetDescription').textContent = pet.description;
+
+  const priceEl = document.getElementById('modalPetPrice');
+  if (priceEl) {
+    const p = parseFloat(pet.price);
+    priceEl.textContent = (p && p > 0) ? `Fee: $${p.toFixed(2)}` : 'Fee: Free adoption';
+  }
+  const vacEl = document.getElementById('modalPetVaccinated');
+  if (vacEl) {
+    vacEl.textContent = `Vaccination: ${pet.vaccinationStatus || 'Up to date'}`;
+  }
+  const healthEl = document.getElementById('modalPetHealth');
+  if (healthEl) {
+    healthEl.textContent = `Health: ${pet.healthInfo || 'Good health'}`;
+  }
+  const statusBadge = document.getElementById('modalStatusBadge');
+  if (statusBadge) {
+    statusBadge.textContent = (pet.status || 'available').toUpperCase();
+  }
+
   const pickup = document.getElementById('modalPickupLocation');
   const inquiryWrap = document.getElementById('modalInquiryWrap');
   const inquiryText = document.getElementById('modalInquiryMessage');
@@ -447,6 +584,20 @@ function setupPetActions() {
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') document.getElementById('petModal')?.classList.remove('open');
   });
+
+  document.getElementById('modalGalleryPrev')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!currentGalleryImages.length) return;
+    currentGalleryIndex = (currentGalleryIndex - 1 + currentGalleryImages.length) % currentGalleryImages.length;
+    updateModalGallery();
+  });
+  document.getElementById('modalGalleryNext')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!currentGalleryImages.length) return;
+    currentGalleryIndex = (currentGalleryIndex + 1) % currentGalleryImages.length;
+    updateModalGallery();
+  });
+
   document.getElementById('modalFavorite')?.addEventListener('click', async () => {
     const name = document.getElementById('modalPetName')?.textContent;
     if (!name) return;
@@ -454,16 +605,29 @@ function setupPetActions() {
     const button = document.getElementById('modalFavorite');
     button.textContent = favorites.has(name) ? '♥ Saved' : '♡ Save Favorite';
   });
+
   document.getElementById('modalApply')?.addEventListener('click', async () => {
     const petName = document.getElementById('modalPetName')?.textContent;
     if (!petName || !selectedPet) return;
     try {
       if (selectedPet?.ownerId && selectedPet.id) {
-        const result = await apiRequest('api/messages.php', { method: 'POST', body: JSON.stringify({ action: 'start', petId: selectedPet.id, message: document.getElementById('modalInquiryMessage')?.value.trim() }) });
-        const existingIndex = conversations.findIndex((conversation) => conversation.id === result.conversation.id);
+        const result = await apiRequest('api/messages.php', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'start',
+            petId: selectedPet.id,
+            message: document.getElementById('modalInquiryMessage')?.value.trim()
+          })
+        });
+        const existingIndex = conversations.findIndex((c) => c.id === result.conversation.id);
         if (existingIndex >= 0) conversations[existingIndex] = result.conversation;
         else conversations.push(result.conversation);
         activeConversationId = result.conversation.id;
+
+        // Instant refresh of dashboard data so application count is updated
+        const dData = await apiRequest('api/dashboard-data.php');
+        renderDashboardData(dData);
+
         renderMessages();
         showSection('messages');
         showToast(result.message);
@@ -475,9 +639,7 @@ function setupPetActions() {
         body: JSON.stringify(selectedPet.id ? { petId: selectedPet.id } : { petName })
       });
       const result = await apiRequest('api/dashboard-data.php');
-      applications = result.applications || [];
-      renderApplications();
-      renderActivity();
+      renderDashboardData(result);
       showToast(`Your adoption request for ${petName} was submitted.`);
     } catch (error) {
       showToast(error.message || 'Unable to submit your adoption request.');
@@ -685,12 +847,96 @@ function setupMobileMenu() {
   });
 }
 
+function applyA11yPrefs(prefs) {
+  const body = document.body;
+  if (!body) return;
+  body.classList.toggle('a11y-dyslexic', Boolean(prefs.dyslexic));
+  body.classList.remove('a11y-text-md', 'a11y-text-lg');
+  if (prefs.textSize === 'medium') body.classList.add('a11y-text-md');
+  if (prefs.textSize === 'large') body.classList.add('a11y-text-lg');
+  body.classList.toggle('a11y-high-contrast', Boolean(prefs.contrast));
+  body.classList.toggle('a11y-reduced-motion', Boolean(prefs.reducedMotion));
+
+  const dyslexicToggle = document.getElementById('a11yDyslexicToggle');
+  const textSizeSelect = document.getElementById('a11yTextSizeSelect');
+  const contrastToggle = document.getElementById('a11yContrastToggle');
+  const motionToggle = document.getElementById('a11yMotionToggle');
+
+  if (dyslexicToggle) dyslexicToggle.checked = Boolean(prefs.dyslexic);
+  if (textSizeSelect) textSizeSelect.value = prefs.textSize || 'default';
+  if (contrastToggle) contrastToggle.checked = Boolean(prefs.contrast);
+  if (motionToggle) motionToggle.checked = Boolean(prefs.reducedMotion);
+}
+
+function loadA11yPrefs() {
+  try {
+    const raw = localStorage.getItem(A11Y_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : { dyslexic: false, textSize: 'default', contrast: false, reducedMotion: false };
+  } catch {
+    return { dyslexic: false, textSize: 'default', contrast: false, reducedMotion: false };
+  }
+}
+
+function saveA11yPrefs(prefs) {
+  try {
+    localStorage.setItem(A11Y_STORAGE_KEY, JSON.stringify(prefs));
+  } catch {}
+  applyA11yPrefs(prefs);
+}
+
+function setupA11y() {
+  const prefs = loadA11yPrefs();
+  applyA11yPrefs(prefs);
+
+  const a11yBtn = document.getElementById('a11yBtn');
+  const a11yModal = document.getElementById('a11yModal');
+  const closeA11yModal = document.getElementById('closeA11yModal');
+  const resetBtn = document.getElementById('a11yResetBtn');
+
+  a11yBtn?.addEventListener('click', () => a11yModal?.classList.add('open'));
+  closeA11yModal?.addEventListener('click', () => a11yModal?.classList.remove('open'));
+  a11yModal?.addEventListener('click', (e) => {
+    if (e.target.id === 'a11yModal') a11yModal.classList.remove('open');
+  });
+
+  document.getElementById('a11yDyslexicToggle')?.addEventListener('change', (e) => {
+    const p = loadA11yPrefs();
+    p.dyslexic = e.target.checked;
+    saveA11yPrefs(p);
+  });
+
+  document.getElementById('a11yTextSizeSelect')?.addEventListener('change', (e) => {
+    const p = loadA11yPrefs();
+    p.textSize = e.target.value;
+    saveA11yPrefs(p);
+  });
+
+  document.getElementById('a11yContrastToggle')?.addEventListener('change', (e) => {
+    const p = loadA11yPrefs();
+    p.contrast = e.target.checked;
+    saveA11yPrefs(p);
+  });
+
+  document.getElementById('a11yMotionToggle')?.addEventListener('change', (e) => {
+    const p = loadA11yPrefs();
+    p.reducedMotion = e.target.checked;
+    saveA11yPrefs(p);
+  });
+
+  resetBtn?.addEventListener('click', () => {
+    const defaults = { dyslexic: false, textSize: 'default', contrast: false, reducedMotion: false };
+    saveA11yPrefs(defaults);
+    showToast('Accessibility display settings reset.');
+  });
+}
+
 async function initializeDashboard() {
   setupSectionNavigation();
   setupPetActions();
   setupFilters();
   setupForms();
   setupMobileMenu();
+  setupA11y();
   document.getElementById('contactTeamBtn')?.addEventListener('click', () => showSection('messages'));
   document.getElementById('profileMenuBtn')?.addEventListener('click', () => showSection('profile'));
   document.getElementById('notificationBtn')?.addEventListener('click', () => {
@@ -701,3 +947,4 @@ async function initializeDashboard() {
 }
 
 document.addEventListener('DOMContentLoaded', initializeDashboard);
+

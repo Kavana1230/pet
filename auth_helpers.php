@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/config/db.php';
+
 function start_auth_session(): void
 {
     if (session_status() === PHP_SESSION_ACTIVE) {
@@ -28,23 +30,44 @@ function auth_users_file(): string
 
 function load_auth_users(): array
 {
-    $users = @include auth_users_file();
-    return is_array($users) ? $users : [];
+    try {
+        $pdo = pawnet_db();
+        $stmt = $pdo->query('
+            SELECT id, name, email, phone, address, role, status, password_hash AS passwordHash,
+                   favorites_json, settings_json, created_at AS createdAt
+            FROM users
+        ');
+        $rows = $stmt->fetchAll();
+        $users = [];
+        foreach ($rows as $row) {
+            $favorites = json_decode((string) ($row['favorites_json'] ?? '[]'), true);
+            $settings = json_decode((string) ($row['settings_json'] ?? '{}'), true);
+            $users[] = [
+                'id' => (string) $row['id'],
+                'name' => (string) $row['name'],
+                'email' => (string) $row['email'],
+                'phone' => (string) ($row['phone'] ?? ''),
+                'address' => (string) ($row['address'] ?? ''),
+                'role' => (string) $row['role'],
+                'status' => (string) ($row['status'] ?? 'active'),
+                'passwordHash' => (string) $row['passwordHash'],
+                'favorites' => is_array($favorites) ? $favorites : [],
+                'settings' => is_array($settings) ? $settings : [],
+                'createdAt' => (string) $row['createdAt'],
+            ];
+        }
+        return $users;
+    } catch (Exception $e) {
+        error_log('Paw Net DB user loading fallback: ' . $e->getMessage());
+        $users = @include auth_users_file();
+        return is_array($users) ? $users : [];
+    }
 }
 
 function auth_user_role(array $user): string
 {
-    if (in_array($user['role'] ?? null, ['buyer', 'seller'], true)) {
+    if (in_array($user['role'] ?? null, ['buyer', 'seller', 'admin'], true)) {
         return (string) $user['role'];
-    }
-
-    $pets = @json_decode((string) @file_get_contents(__DIR__ . '/data/pets.json'), true);
-    if (is_array($pets)) {
-        foreach ($pets as $pet) {
-            if (($pet['ownerId'] ?? '') === ($user['id'] ?? '')) {
-                return 'seller';
-            }
-        }
     }
 
     return 'buyer';
@@ -52,7 +75,12 @@ function auth_user_role(array $user): string
 
 function auth_redirect_for_role(string $role): void
 {
-    header('Location: ' . ($role === 'seller' ? 'seller.php' : 'index.php'));
+    $target = match ($role) {
+        'admin' => 'admin.php',
+        'seller' => 'seller.php',
+        default => 'index.php',
+    };
+    header('Location: ' . $target);
     exit;
 }
 
@@ -67,6 +95,14 @@ function auth_require_role(string $requiredRole): void
     $userId = (string) $_SESSION['user']['id'];
     foreach (load_auth_users() as $user) {
         if (($user['id'] ?? '') === $userId) {
+            // Check account status
+            if (($user['status'] ?? 'active') !== 'active') {
+                $_SESSION = [];
+                session_destroy();
+                header('Location: login.php?error=suspended');
+                exit;
+            }
+
             $role = auth_user_role($user);
             $_SESSION['user']['role'] = $role;
             if ($role !== $requiredRole) {
@@ -83,8 +119,47 @@ function auth_require_role(string $requiredRole): void
 
 function save_auth_users(array $users): bool
 {
+    $savedDb = false;
+    try {
+        $pdo = pawnet_db();
+        $stmt = $pdo->prepare('
+            INSERT INTO users (id, name, email, phone, address, role, status, password_hash, favorites_json, settings_json)
+            VALUES (:id, :name, :email, :phone, :address, :role, :status, :password_hash, :favorites_json, :settings_json)
+            ON DUPLICATE KEY UPDATE
+                name = VALUES(name),
+                email = VALUES(email),
+                phone = VALUES(phone),
+                address = VALUES(address),
+                role = VALUES(role),
+                status = VALUES(status),
+                password_hash = VALUES(password_hash),
+                favorites_json = VALUES(favorites_json),
+                settings_json = VALUES(settings_json)
+        ');
+        foreach ($users as $u) {
+            $stmt->execute([
+                'id' => (string) $u['id'],
+                'name' => (string) ($u['name'] ?? ''),
+                'email' => strtolower((string) ($u['email'] ?? '')),
+                'phone' => (string) ($u['phone'] ?? ''),
+                'address' => (string) ($u['address'] ?? ''),
+                'role' => (string) ($u['role'] ?? 'buyer'),
+                'status' => (string) ($u['status'] ?? 'active'),
+                'password_hash' => (string) ($u['passwordHash'] ?? ''),
+                'favorites_json' => json_encode($u['favorites'] ?? []),
+                'settings_json' => json_encode($u['settings'] ?? []),
+            ]);
+        }
+        $savedDb = true;
+    } catch (Exception $e) {
+        error_log('Paw Net DB user save error: ' . $e->getMessage());
+    }
+
+    // Also persist file backup
     $php = "<?php\nreturn " . var_export($users, true) . ";\n";
-    return file_put_contents(auth_users_file(), $php, LOCK_EX) !== false;
+    $savedFile = file_put_contents(auth_users_file(), $php, LOCK_EX) !== false;
+
+    return $savedDb || $savedFile;
 }
 
 function auth_csrf_token(): string

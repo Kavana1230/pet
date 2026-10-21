@@ -8,9 +8,9 @@
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   })[char]);
 
-  async function request(data) {
-    const response = await fetch('api/messages.php', {
-      method: data ? 'POST' : 'GET',
+  async function request(endpoint, data = null, method = 'POST') {
+    const response = await fetch(endpoint, {
+      method: data ? method : 'GET',
       credentials: 'same-origin',
       headers: {
         Accept: 'application/json',
@@ -19,7 +19,7 @@
       body: data ? JSON.stringify(data) : undefined
     });
     const result = await response.json();
-    if (!response.ok || !result.success) throw new Error(result.message || 'Could not load messages.');
+    if (!response.ok || !result.success) throw new Error(result.message || 'Operation failed');
     return result;
   }
 
@@ -28,20 +28,125 @@
     const log = document.getElementById('messageLog');
     const input = document.getElementById('replyInput');
     const send = document.getElementById('replyButton');
+    let actionBar = document.getElementById('inboxActionBar');
+    if (!actionBar) {
+      actionBar = document.createElement('div');
+      actionBar.id = 'inboxActionBar';
+      actionBar.className = 'app-action-bar';
+      const head = document.querySelector('.inbox-chat-head');
+      if (head) head.after(actionBar);
+    }
+
     if (!log || !input || !send) return;
 
     input.disabled = !conversation;
     send.disabled = !conversation;
     document.getElementById('contactName').textContent = conversation?.buyerName || 'Choose a conversation';
     document.getElementById('contactAvatar').textContent = conversation ? (conversation.buyerName || 'B').slice(0, 1).toUpperCase() : '🐾';
+    
+    const petInfo = conversation?.listing || {};
     document.getElementById('contactPet').textContent = conversation
-      ? `${conversation.petName} · ${conversation.listing?.breed || ''} · ${conversation.listing?.age ?? ''} years · ${conversation.listing?.sex || ''} · Pickup: ${conversation.listing?.pickupLocation || 'confirm together'}`
+      ? `${conversation.petName} · ${petInfo.breed || ''} · ${petInfo.age ?? ''} yrs · ${petInfo.sex || ''} · Pickup: ${petInfo.pickupLocation || 'confirm together'}`
       : 'Buyer and pet details appear here';
 
     if (!conversation) {
+      actionBar.style.display = 'none';
       log.innerHTML = '<p class="empty">Choose a buyer to read and reply to their message.</p>';
       return;
     }
+
+    // Render Application Workflow Bar (Stage 1 Bug C)
+    const status = conversation.status || 'pending';
+    actionBar.style.display = 'flex';
+    let statusText = '';
+    let actionsHtml = '';
+
+    if (status === 'pending') {
+      statusText = '<span style="color:#b45309;">⏳ Adoption inquiry pending your review</span>';
+      actionsHtml = `
+        <button class="btn sm success" id="sellerAcceptBtn">✓ Accept</button>
+        <button class="btn sm danger" id="sellerRejectBtn">✕ Decline</button>
+      `;
+    } else if (status === 'accepted') {
+      statusText = '<span style="color:#16815d;">✅ Accepted by you · Meeting not yet confirmed</span>';
+      actionsHtml = `
+        <button class="btn sm" style="background:#7056df;color:white;" id="sellerConfirmBtn">📅 Confirm Meeting</button>
+        <button class="btn sm danger" id="sellerRejectBtn">Decline</button>
+      `;
+    } else if (status === 'meeting_confirmed') {
+      statusText = '<span style="color:#16815d;">🤝 Meeting scheduled · Listing is reserved</span>';
+      actionsHtml = `
+        <button class="btn sm success" id="sellerCompleteBtn">🎉 Mark Adoption Complete</button>
+        <button class="btn sm" style="background:#fff;color:#7056df;border:1px solid #7056df;" id="sellerReopenBtn">↩ Reopen Listing</button>
+      `;
+    } else if (status === 'rejected') {
+      statusText = '<span style="color:#d32f2f;">✕ Application declined · Conversation closed</span>';
+      actionsHtml = '';
+    } else if (status === 'completed') {
+      statusText = '<span style="color:#16815d;">🎉 Pet adopted! Happy new home.</span>';
+      actionsHtml = '';
+    } else {
+      statusText = `<span>Status: ${escapeHtml(status)}</span>`;
+    }
+
+    actionBar.innerHTML = `
+      <div>${statusText}</div>
+      <div class="actions">${actionsHtml}</div>
+    `;
+
+    // Hook workflow buttons
+    document.getElementById('sellerAcceptBtn')?.addEventListener('click', async () => {
+      try {
+        const res = await request('api/applications.php', { action: 'accept', conversationId: activeId });
+        window.say?.(res.message);
+        await loadMessages(false);
+      } catch (err) {
+        window.say?.(err.message);
+      }
+    });
+
+    document.getElementById('sellerRejectBtn')?.addEventListener('click', async () => {
+      if (!confirm('Are you sure you want to decline this application? This conversation will become read-only.')) return;
+      try {
+        const res = await request('api/applications.php', { action: 'reject', conversationId: activeId });
+        window.say?.(res.message);
+        await loadMessages(false);
+      } catch (err) {
+        window.say?.(err.message);
+      }
+    });
+
+    document.getElementById('sellerConfirmBtn')?.addEventListener('click', async () => {
+      try {
+        const res = await request('api/applications.php', { action: 'confirm_meeting', conversationId: activeId });
+        window.say?.(res.message);
+        await loadMessages(false);
+      } catch (err) {
+        window.say?.(err.message);
+      }
+    });
+
+    document.getElementById('sellerReopenBtn')?.addEventListener('click', async () => {
+      if (!confirm('Did the meeting not work out? Reopening will make this listing available in the adoption catalog again.')) return;
+      try {
+        const res = await request('api/applications.php', { action: 'reopen', conversationId: activeId });
+        window.say?.(res.message);
+        await loadMessages(false);
+      } catch (err) {
+        window.say?.(err.message);
+      }
+    });
+
+    document.getElementById('sellerCompleteBtn')?.addEventListener('click', async () => {
+      if (!confirm('Mark adoption as completed? Congratulations to the pet and adopter!')) return;
+      try {
+        const res = await request('api/applications.php', { action: 'complete', conversationId: activeId });
+        window.say?.(res.message);
+        await loadMessages(false);
+      } catch (err) {
+        window.say?.(err.message);
+      }
+    });
 
     log.innerHTML = (conversation.messages || []).map((message) => {
       const sentBySeller = message.senderId === sellerId;
@@ -76,7 +181,9 @@
     container.innerHTML = conversations.slice().reverse().map((conversation) => {
       const latest = conversation.messages?.at(-1) || {};
       const needsReply = Number(conversation.unreadCount || 0) > 0;
-      return `<button class="inbox-thread ${conversation.id === activeId ? 'active' : ''}" data-conversation-id="${escapeHtml(conversation.id)}"><span class="stat-icon">${escapeHtml((conversation.buyerName || 'B').slice(0, 1).toUpperCase())}</span><span class="inbox-thread-copy"><b>${escapeHtml(conversation.buyerName)} · ${escapeHtml(conversation.petName)}</b><small>${escapeHtml(latest.text || 'New inquiry')}</small></span>${needsReply ? '<em>New</em>' : ''}</button>`;
+      const st = conversation.status || 'pending';
+      const statusLabel = st === 'pending' ? 'Pending' : st === 'accepted' ? 'Accepted' : st === 'meeting_confirmed' ? 'Meeting' : st === 'rejected' ? 'Declined' : '';
+      return `<button class="inbox-thread ${conversation.id === activeId ? 'active' : ''}" data-conversation-id="${escapeHtml(conversation.id)}"><span class="stat-icon">${escapeHtml((conversation.buyerName || 'B').slice(0, 1).toUpperCase())}</span><span class="inbox-thread-copy"><b>${escapeHtml(conversation.buyerName)} · ${escapeHtml(conversation.petName)}</b><small>${escapeHtml(latest.text || 'New inquiry')}</small></span>${needsReply ? '<em>New</em>' : statusLabel ? `<em style="background:#ede9fe;color:#7056df;">${statusLabel}</em>` : ''}</button>`;
     }).join('');
     container.querySelectorAll('[data-conversation-id]').forEach((button) => {
       button.addEventListener('click', () => {
@@ -91,7 +198,7 @@
   }
 
   async function markRead(conversationId) {
-    const result = await request({ action: 'read', conversationId });
+    const result = await request('api/messages.php', { action: 'read', conversationId });
     const index = conversations.findIndex((conversation) => conversation.id === conversationId);
     if (index >= 0) conversations[index] = result.conversation;
     drawThreads();
@@ -99,7 +206,7 @@
 
   async function loadMessages(showError = true) {
     try {
-      const result = await request();
+      const result = await request('api/messages.php', null, 'GET');
       conversations = result.conversations || [];
       drawThreads();
       const active = conversations.find((conversation) => conversation.id === activeId);
@@ -121,7 +228,7 @@
     if (!activeId || !message) return;
     send.disabled = true;
     try {
-      const result = await request({ action: 'reply', conversationId: activeId, message });
+      const result = await request('api/messages.php', { action: 'reply', conversationId: activeId, message });
       const index = conversations.findIndex((conversation) => conversation.id === activeId);
       if (index >= 0) conversations[index] = result.conversation;
       input.value = '';
