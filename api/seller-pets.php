@@ -27,8 +27,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 
     $stmt = $database->prepare("
-        SELECT p.id, p.owner_id AS ownerId, p.name, p.breed, p.type, p.sex, p.age, p.price,
+        SELECT p.id, p.owner_id AS ownerId, p.name, p.breed, p.type, p.sex, p.age,
+               p.age_value AS ageValue, p.age_unit AS ageUnit, p.price,
                p.health_info AS healthInfo, p.vaccination_status AS vaccinationStatus,
+               p.sterilized_status AS sterilizedStatus, p.dewormed_status AS dewormedStatus, p.trained_status AS trainedStatus,
                p.description, p.pickup_location AS pickupLocation, p.status,
                p.created_at AS createdAt, p.updated_at AS updatedAt, p.sold_at AS soldAt, p.deleted_at AS deletedAt,
                COALESCE(
@@ -61,6 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         foreach ($pets as &$p) {
             $p['images'] = $imagesByPet[$p['id']] ?? [['id' => '1', 'url' => $p['image'], 'isPrimary' => true]];
             $p['age'] = (int) $p['age'];
+            $p['ageValue'] = (float) $p['ageValue'];
             $p['price'] = (float) $p['price'];
         }
         unset($p);
@@ -217,10 +220,21 @@ $name = trim(is_string($input['name'] ?? null) ? $input['name'] : '');
 $breed = trim(is_string($input['breed'] ?? null) ? $input['breed'] : '');
 $type = strtolower(trim(is_string($input['type'] ?? null) ? $input['type'] : ''));
 $sex = strtolower(trim(is_string($input['sex'] ?? null) ? $input['sex'] : ''));
-$age = filter_var($input['age'] ?? null, FILTER_VALIDATE_INT);
+$ageValue = filter_var($input['age'] ?? null, FILTER_VALIDATE_INT);
+$ageUnit = is_string($input['ageUnit'] ?? null) ? $input['ageUnit'] : 'years';
+$ageFactor = ['days' => 1 / 365, 'months' => 1 / 12, 'years' => 1];
+$ageYears = ($ageValue !== false && isset($ageFactor[$ageUnit])) ? $ageValue * $ageFactor[$ageUnit] : -1;
+$age = (int) floor(max(0, $ageYears));
 $price = isset($input['price']) ? (float)$input['price'] : 0.00;
-$healthInfo = trim(is_string($input['healthInfo'] ?? null) ? $input['healthInfo'] : 'Good overall health');
-$vaccinationStatus = trim(is_string($input['vaccinationStatus'] ?? null) ? $input['vaccinationStatus'] : 'Up to date');
+$healthInfo = trim(is_string($input['healthInfo'] ?? null) ? $input['healthInfo'] : '');
+$validCareStatuses = ['yes', 'no', 'unknown'];
+$rawVaccinationStatus = strtolower(trim(is_string($input['vaccinationStatus'] ?? null) ? $input['vaccinationStatus'] : 'unknown'));
+$vaccinationStatus = in_array($rawVaccinationStatus, $validCareStatuses, true)
+    ? $rawVaccinationStatus
+    : (in_array($rawVaccinationStatus, ['up to date', 'fully vaccinated', 'vaccinated'], true) ? 'yes' : 'unknown');
+$sterilizedStatus = is_string($input['sterilizedStatus'] ?? null) && in_array($input['sterilizedStatus'], $validCareStatuses, true) ? $input['sterilizedStatus'] : 'unknown';
+$dewormedStatus = is_string($input['dewormedStatus'] ?? null) && in_array($input['dewormedStatus'], $validCareStatuses, true) ? $input['dewormedStatus'] : 'unknown';
+$trainedStatus = is_string($input['trainedStatus'] ?? null) && in_array($input['trainedStatus'], $validCareStatuses, true) ? $input['trainedStatus'] : 'unknown';
 $pickupLocation = trim(is_string($input['pickupLocation'] ?? null) ? $input['pickupLocation'] : '');
 $description = trim(is_string($input['description'] ?? null) ? $input['description'] : '');
 
@@ -242,7 +256,8 @@ if ($singleImage !== '' && !in_array($singleImage, $imageUrls, true)) {
 if ($name === '' || strlen($name) > 60 || $breed === '' || strlen($breed) > 80
     || !in_array($type, ['cat', 'dog', 'hamster'], true)
     || !in_array($sex, ['male', 'female'], true)
-    || $age === false || $age < 0 || $age > 40
+    || $ageValue === false || $ageValue < 0 || !isset($ageFactor[$ageUnit])
+    || ($ageUnit === 'years' && $ageValue > 40) || ($ageUnit === 'months' && $ageValue > 480) || ($ageUnit === 'days' && $ageValue > 14600)
     || $pickupLocation === '' || strlen($pickupLocation) > 250
     || $description === '' || strlen($description) > 1000) {
     api_respond(['success' => false, 'message' => 'Please fill all required pet details accurately (name, breed, type, sex, age, location, and description).'], 422);
@@ -260,7 +275,9 @@ if ($action === 'update') {
         $stmt = $database->prepare('
             UPDATE pets
             SET name = :name, breed = :breed, type = :type, sex = :sex, age = :age,
+                age_value = :age_value, age_unit = :age_unit,
                 price = :price, health_info = :health_info, vaccination_status = :vaccination_status,
+                sterilized_status = :sterilized_status, dewormed_status = :dewormed_status, trained_status = :trained_status,
                 description = :description, pickup_location = :pickup_location, updated_at = NOW(6)
             WHERE id = :id AND owner_id = :owner_id
         ');
@@ -272,9 +289,14 @@ if ($action === 'update') {
             'type' => $type,
             'sex' => $sex,
             'age' => $age,
+            'age_value' => $ageValue,
+            'age_unit' => $ageUnit,
             'price' => $price,
             'health_info' => $healthInfo,
             'vaccination_status' => $vaccinationStatus,
+            'sterilized_status' => $sterilizedStatus,
+            'dewormed_status' => $dewormedStatus,
+            'trained_status' => $trainedStatus,
             'description' => $description,
             'pickup_location' => $pickupLocation,
         ]);
@@ -323,9 +345,9 @@ $database->beginTransaction();
 try {
     $stmt = $database->prepare('
         INSERT INTO pets
-            (id, owner_id, name, breed, type, sex, age, price, health_info, vaccination_status, description, pickup_location, status, created_at, updated_at)
+            (id, owner_id, name, breed, type, sex, age, age_value, age_unit, price, health_info, vaccination_status, sterilized_status, dewormed_status, trained_status, description, pickup_location, status, created_at, updated_at)
         VALUES
-            (:id, :owner_id, :name, :breed, :type, :sex, :age, :price, :health_info, :vaccination_status, :description, :pickup_location, "available", NOW(6), NOW(6))
+            (:id, :owner_id, :name, :breed, :type, :sex, :age, :age_value, :age_unit, :price, :health_info, :vaccination_status, :sterilized_status, :dewormed_status, :trained_status, :description, :pickup_location, "available", NOW(6), NOW(6))
     ');
     $stmt->execute([
         'id' => $petId,
@@ -335,9 +357,14 @@ try {
         'type' => $type,
         'sex' => $sex,
         'age' => $age,
+        'age_value' => $ageValue,
+        'age_unit' => $ageUnit,
         'price' => $price,
         'health_info' => $healthInfo,
         'vaccination_status' => $vaccinationStatus,
+        'sterilized_status' => $sterilizedStatus,
+        'dewormed_status' => $dewormedStatus,
+        'trained_status' => $trainedStatus,
         'description' => $description,
         'pickup_location' => $pickupLocation,
     ]);

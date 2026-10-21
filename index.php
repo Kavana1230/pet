@@ -71,13 +71,13 @@ $initials = strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1));
                 <span class="nav-icon">⚙</span><span>Settings</span>
             </button>
         </nav>
-
+<!--
         <div class="help-card">
             <div class="help-icon">?</div>
             <strong>Need help?</strong>
             <p>Our adoption team is happy to help you.</p>
             <button id="contactTeamBtn">Contact Team</button>
-        </div>
+        </div> -->
 
         <form action="logout.php" method="post">
             <input type="hidden" name="csrf_token" value="<?= auth_escape(auth_csrf_token()) ?>">
@@ -146,6 +146,13 @@ $initials = strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1));
                     <div><span>Pets to meet</span><strong id="availablePetCount">0</strong><small>Cats, dogs and hamsters</small></div>
                 </article>
             </div>
+
+            <nav class="journey-strip" aria-label="Adoption journey shortcuts">
+                <div class="journey-intro"><span class="journey-kicker">A GOOD PLACE TO START</span><strong>Your adoption journey</strong></div>
+                <button type="button" data-section-target="find-pets"><span class="journey-step">1</span><span><strong>Meet the pets</strong><small>Browse available companions</small></span><span class="journey-arrow" aria-hidden="true">→</span></button>
+                <button type="button" data-section-target="favorites"><span class="journey-step">2</span><span><strong>Save your favorites</strong><small>Keep lovely matches close</small></span><span class="journey-arrow" aria-hidden="true">→</span></button>
+                <button type="button" data-section-target="applications"><span class="journey-step">3</span><span><strong>Take the next step</strong><small>Follow your applications</small></span><span class="journey-arrow" aria-hidden="true">→</span></button>
+            </nav>
 
             <div class="content-grid">
                 <article class="panel applications-panel">
@@ -314,7 +321,7 @@ $initials = strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1));
 <div class="toast" id="toast"><span>✓</span><p id="toastMessage">Done!</p></div>
 
 <div class="modal-backdrop" id="petModal">
-    <div class="modal">
+    <div class="modal adoption-modal">
         <button class="modal-close" id="closePetModal" aria-label="Close modal">×</button>
         <div class="modal-gallery-wrap">
             <button class="gallery-nav prev" id="modalGalleryPrev" type="button" aria-label="Previous image">‹</button>
@@ -323,15 +330,38 @@ $initials = strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1));
             <div class="gallery-dots" id="modalGalleryDots"></div>
         </div>
         <div class="modal-content">
-            <span class="modal-label" id="modalStatusBadge">AVAILABLE FOR ADOPTION</span>
-            <h2 id="modalPetName">Pet</h2>
-            <p id="modalPetMeta"></p>
-            <div class="modal-extra-details">
-                <span id="modalPetPrice" class="detail-chip">Fee: Free</span>
-                <span id="modalPetVaccinated" class="detail-chip">Vaccinated</span>
-                <span id="modalPetHealth" class="detail-chip">Health: Good</span>
-            </div>
-            <p id="modalPetDescription">This lovely pet is looking for a caring family and a safe, loving home.</p>
+            <div class="adoption-title-row"><div><span class="modal-label" id="modalStatusBadge">AVAILABLE FOR ADOPTION</span><h2 id="modalPetName">Pet</h2></div><span class="pet-reference" id="modalPetReference"></span></div>
+            <p id="modalPetMeta" class="adoption-subtitle"></p>
+            <details class="profile-accordion" open>
+                <summary><span>Care & health</span><small>Vaccination, treatment, and training</small></summary>
+                <div class="accordion-content">
+                    <div class="care-badges" aria-label="Care information">
+                        <span id="modalPetVaccinated" class="care-badge"></span>
+                        <span id="modalPetSterilized" class="care-badge"></span>
+                        <span id="modalPetDewormed" class="care-badge"></span>
+                        <span id="modalPetTrained" class="care-badge"></span>
+                    </div>
+                    <p class="care-legend"><span aria-hidden="true">✓</span> Yes <span aria-hidden="true">✕</span> No <span>Not specified means the seller hasn’t shared this detail.</span></p>
+                    <div class="health-notes" id="modalHealthNotes" hidden><strong>Health notes</strong><p id="modalPetHealth"></p></div>
+                </div>
+            </details>
+            <details class="profile-accordion" open>
+                <summary><span>Pet details</span><small>Age, breed, location, and seller</small></summary>
+                <div class="accordion-content">
+                    <div class="adoption-details" aria-label="Pet listing details">
+                        <div><span>Gender</span><strong id="modalPetGender">Not specified</strong></div>
+                        <div><span>Age</span><strong id="modalPetAge">Not specified</strong></div>
+                        <div><span>Breed</span><strong id="modalPetBreed">Not specified</strong></div>
+                        <div><span>Location</span><strong id="modalPetLocation">Shared privately with adopters</strong></div>
+                        <div><span>Contact person</span><strong id="modalPetSeller">Paw Net seller</strong></div>
+                    </div>
+                </div>
+            </details>
+            <details class="profile-accordion" open>
+                <summary><span>About <span id="modalAboutName">this pet</span></span><small>Personality and home needs</small></summary>
+                <div class="accordion-content"><p id="modalPetDescription" class="adoption-description">This lovely pet is looking for a caring family and a safe, loving home.</p></div>
+            </details>
+            <div class="seller-contact-card"><span class="seller-avatar" id="modalSellerInitial">P</span><div><strong id="modalSellerCardName">Paw Net seller</strong><span>Contact the seller privately through Paw Net.</span></div></div>
             <p id="modalPickupLocation" class="modal-pickup" hidden></p>
             <label id="modalInquiryWrap" class="modal-inquiry-wrap" hidden for="modalInquiryMessage">Your message to the seller<textarea id="modalInquiryMessage" maxlength="2000"></textarea><small>Pet details and the pickup location are included. You can add your questions.</small></label>
             <div class="modal-actions"><button class="outline-btn" id="modalFavorite">♡ Save Favorite</button><button class="primary-btn" id="modalApply">Apply to Adopt</button></div>
@@ -363,6 +393,10 @@ $initials = strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1));
                 <div style="display:flex;justify-content:space-between;align-items:center;">
                     <div><strong>High contrast</strong><p style="font-size:11px;color:var(--muted);">Enhanced borders & contrast</p></div>
                     <label class="switch"><input type="checkbox" id="a11yContrastToggle"><span></span></label>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;">
+                    <div><strong>Color vision friendly palette</strong><p style="font-size:11px;color:var(--muted);">Distinct accents; species and statuses keep text labels</p></div>
+                    <label class="switch"><input type="checkbox" id="a11yColorVisionToggle" aria-label="Use a color vision friendly palette"><span></span></label>
                 </div>
                 <div style="display:flex;justify-content:space-between;align-items:center;">
                     <div><strong>Reduced motion</strong><p style="font-size:11px;color:var(--muted);">Minimize animations</p></div>

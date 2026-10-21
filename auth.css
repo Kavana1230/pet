@@ -106,3 +106,33 @@ a { color: inherit; }
   .choice-card h2 { font-size: 32px; }
   .choice-divider { margin-top: 23px; }
 }
+
+/* Shared welcome, sign-in, and registration visual refresh. */
+:root {
+  --ink: #20322e;
+  --muted: #71817b;
+  --purple: #17877d;
+  --plum: #285e54;
+  --rose: #f0ad83;
+  --line: #e1ebe5;
+}
+body { background: #f5f8f4; }
+.auth-shell { background: #f5f8f4; }
+.auth-story {
+  background:
+    radial-gradient(ellipse at 15% 78%, rgba(240,173,131,.34), transparent 36%),
+    linear-gradient(145deg, #183f3a, #27685e 58%, #578d72);
+}
+.auth-brand .brand-mark { background: rgba(255,255,255,.15); }
+.auth-content { background: radial-gradient(ellipse at 92% 8%, rgba(240,173,131,.12), transparent 30%); }
+.auth-card, .choice-card { animation: auth-arrive .42s ease both; }
+.auth-card input { border-color: #dce8e1; background: rgba(255,255,255,.94); }
+.auth-card input:focus { border-color: #58a994; box-shadow: 0 0 0 3px rgba(23,135,125,.12); }
+.auth-submit { background: linear-gradient(110deg, #17877d, #36a187); box-shadow: 0 12px 24px rgba(23,135,125,.2); }
+.auth-submit:hover { box-shadow: 0 15px 27px rgba(23,135,125,.28); }
+.auth-switch a, .back-home span, .choice-secondary span { color: #17877d; }
+.choice-secondary { color: #285e54; border-color: #e1ebe5; }
+.choice-secondary:hover { border-color: #93c9b9; }
+.choice-divider::before, .choice-divider::after { background: #e1ebe5; }
+@keyframes auth-arrive { from { opacity: .55; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .auth-card, .choice-card { animation: none; } }

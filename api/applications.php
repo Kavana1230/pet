@@ -83,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $app['nextStep'] = match ($app['status']) {
                 'pending' => 'Pending seller review',
                 'accepted' => 'Seller accepted — ready to confirm meeting',
-                'meeting_confirmed' => 'Meeting scheduled · Pet is reserved',
+                'meeting_confirmed' => 'Meeting confirmed · Arrange a time in messages',
                 'completed' => 'Adoption completed',
                 'rejected' => 'Application closed',
                 'cancelled' => 'Application cancelled',
@@ -217,23 +217,8 @@ try {
         ');
         $updPet->execute(['pet_id' => $app['pet_id']]);
 
-        // Post confirmation message
-        if (!empty($app['conversation_id'])) {
-            $msgStmt = $database->prepare('
-                INSERT INTO messages (id, conversation_id, sender_id, sender_name, message_text, created_at)
-                VALUES (:id, :cid, :sid, :sname, :text, NOW(6))
-            ');
-            $msgStmt->execute([
-                'id' => bin2hex(random_bytes(24)),
-                'cid' => $app['conversation_id'],
-                'sid' => $userId,
-                'sname' => (string) ($sessionUser['name'] ?? 'Member'),
-                'text' => '📅 Meeting confirmed! The pet listing has been reserved and temporarily hidden from public adoption search while you meet.',
-            ]);
-        }
-
         $database->commit();
-        api_respond(['success' => true, 'message' => 'Meeting confirmed! Listing moved to Reserved area.']);
+        api_respond(['success' => true, 'message' => 'Meeting confirmed! The listing is reserved. Arrange the date and time in your messages.']);
     }
 
     if ($action === 'reopen') {

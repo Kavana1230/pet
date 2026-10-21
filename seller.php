@@ -98,6 +98,7 @@ $initials = strtoupper(substr($parts[0] ?? 'P', 0, 1) . substr($parts[1] ?? '', 
         .form label{display:grid;gap:6px;color:#69677c;font-size:11px;font-weight:700}
         .form input,.form select,.form textarea{border:1px solid var(--line);border-radius:9px;background:white;padding:11px;font:12px 'DM Sans';color:var(--ink);width:100%}
         .form textarea{min-height:95px;resize:vertical}
+        .age-fields{display:grid;grid-template-columns:1fr 115px;gap:8px}
         .wide{grid-column:1/-1}
         .form-actions{display:flex;gap:8px}
         .empty{padding:22px;background:#fbfaff;border:1px dashed #dcd7ea;border-radius:11px;color:var(--muted);font-size:12px;text-align:center}
@@ -144,6 +145,35 @@ $initials = strtoupper(substr($parts[0] ?? 'P', 0, 1) . substr($parts[1] ?? '', 
             .toolbar{align-items:stretch;flex-direction:column}.search{width:100%}
             .tabs{overflow:auto}.tabs button{white-space:nowrap}.cards{grid-template-columns:1fr}.form{grid-template-columns:1fr}.wide{grid-column:auto}
         }
+        /* Seller studio refresh to match Paw Net's calm teal and warm sand palette. */
+        :root{--purple:#17877d;--ink:#20322e;--muted:#71817b;--line:#e1ebe5;--bg:#f4f8f5;--green:#258b6b;--red:#b94b39;--amber:#a56b12}
+        body{background:radial-gradient(ellipse at 92% 0%,#f4a87918,transparent 30%),linear-gradient(180deg,#f9fbf8,#f1f7f3)}
+        .sidebar{background:rgba(251,253,250,.97);box-shadow:8px 0 28px #214e430c}
+        .brand-icon{background:linear-gradient(135deg,#17877d,#48aa8d);color:#fff;box-shadow:0 10px 22px #17877d2e}
+        .nav button{transition:background .18s ease,color .18s ease,transform .18s ease}
+        .nav button:hover,.nav button.active{background:#e5f5f0;color:var(--purple);transform:translateX(2px)}
+        .nav-count,.stat-icon{background:#e5f5f0;color:var(--purple)}
+        .topbar{background:rgba(255,255,255,.9);backdrop-filter:blur(12px);box-shadow:0 6px 22px #214e4308}
+        .btn{background:linear-gradient(135deg,#17877d,#36a187);box-shadow:0 8px 18px #17877d24;transition:transform .18s ease,box-shadow .18s ease,background .18s ease}
+        .btn:hover{background:linear-gradient(135deg,#116b63,#258b73);transform:translateY(-1px);box-shadow:0 12px 23px #17877d30}
+        .btn.light{background:#e5f5f0;color:#116b63;box-shadow:none}
+        .quick{background:radial-gradient(circle at 90% 0%,#ffffff26,transparent 35%),linear-gradient(135deg,#176e64,#32977e 72%,#6b9b74);border-radius:20px;box-shadow:0 16px 34px #214e4318}
+        .quick .btn{background:#fff;color:#176e64}
+        .stat,.panel,.seller-inbox,.pet-card{border-color:#dfeae3;border-radius:18px;box-shadow:0 10px 28px #214e4309}
+        .stat{transition:transform .18s ease,box-shadow .18s ease}.stat:hover,.pet-card:hover{transform:translateY(-3px);box-shadow:0 16px 34px #214e4315}
+        .pet-card{transition:transform .18s ease,box-shadow .18s ease}
+        .recent-row,.search,.tabs button,.form input,.form select,.form textarea,.inbox-reply input{border-color:#dfeae3;border-radius:12px}
+        .recent-row{background:#fff;transition:border-color .18s ease,transform .18s ease}.recent-row:hover{border-color:#9fcdbb;transform:translateY(-1px)}
+        .tabs button.active,.actions .reopen-btn{background:#e5f5f0;border-color:#b7dfcf;color:#116b63}
+        .actions .sold-btn,.actions .restore-btn{background:#eaf7f1;color:#176d54;border-color:#c8e8d8}
+        .actions .del-btn{background:#fff4f0;color:#9c3d2d;border-color:#efd0c8}
+        .form input:focus,.form select:focus,.form textarea:focus,.search:focus,.inbox-reply input:focus{outline:3px solid #17877d24;border-color:#17877d}
+        .panel-head h2{font-size:16px}.heading h1{letter-spacing:-.5px}
+        .inbox-thread:hover,.inbox-thread.active{background:#e8f5ef}
+        .inbox-bubble.mine{background:linear-gradient(135deg,#17877d,#36a187)}
+        .gallery-thumb-item.primary{border-color:#17877d;box-shadow:0 0 0 2px #17877d22}
+        button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #17877d55;outline-offset:2px}
+        @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
     </style>
 </head>
 <body>
@@ -160,7 +190,10 @@ $initials = strtoupper(substr($parts[0] ?? 'P', 0, 1) . substr($parts[1] ?? '', 
         <button data-view="messages"><i>✉</i>Messages <span id="messageCount" class="nav-count"></span></button>
     </nav>
     <div class="sidebar-foot">
-        <a href="logout.php">⇥ Sign out</a>
+        <form action="logout.php" method="post">
+            <input type="hidden" name="csrf_token" value="<?= auth_escape(auth_csrf_token()) ?>">
+            <button type="submit" style="display:block;width:100%;border:0;background:transparent;text-align:left;color:#737186;padding:10px;font:inherit;font-weight:600;font-size:12px;cursor:pointer">⇥ Sign out</button>
+        </form>
     </div>
 </aside>
 
@@ -217,12 +250,12 @@ $initials = strtoupper(substr($parts[0] ?? 'P', 0, 1) . substr($parts[1] ?? '', 
                 </section>
                 <aside>
                     <div class="quick">
-                        <span class="spark">✨</span>
+                        <span class="spark"></span>
                         <h2>Help the right family find their friend.</h2>
                         <p>Add clear photos and share personality details. High quality listings connect pets with loving families faster.</p>
                         <button class="btn" data-go="add">Create a listing →</button>
                     </div>
-                    <div class="tip">💡 <b>Listing tip:</b> Mention whether your pet gets along with children or other animals, their favorite toys, and routine.</div>
+                    <div class="tip"> <b>Listing tip:</b> Mention whether your pet gets along with children or other animals, their favorite toys, and routine.</div>
                 </aside>
             </div>
         </section>
@@ -316,14 +349,28 @@ $initials = strtoupper(substr($parts[0] ?? 'P', 0, 1) . substr($parts[1] ?? '', 
                             <option value="female">Female</option>
                         </select>
                     </label>
-                    <label>Age in years *<input name="age" type="number" min="0" max="40" required></label>
-                    <label>Adoption Fee ($)<input name="price" type="number" min="0" step="0.5" placeholder="0.00"></label>
-                    <label>Vaccination Status<input name="vaccinationStatus" placeholder="e.g. Up to date, Fully vaccinated"></label>
-                    <label>Health Information<input name="healthInfo" placeholder="e.g. Spayed/neutered, microchipped, healthy coat"></label>
+                    <label>Age *
+                        <span class="age-fields"><input id="petAgeInput" name="age" type="number" min="0" max="40" step="1" placeholder="Age" required><select id="petAgeUnit" name="ageUnit" aria-label="Age unit"><option value="years">Years</option><option value="months">Months</option><option value="days">Days</option></select></span>
+                    </label>
+                    <input name="price" type="hidden" value="0">
+                    <label>Vaccinated
+                        <select name="vaccinationStatus"><option value="unknown">Not specified</option><option value="yes">Yes</option><option value="no">No</option></select>
+                    </label>
+                    <label>Sterilized / spayed
+                        <select name="sterilizedStatus"><option value="unknown">Not specified</option><option value="yes">Yes</option><option value="no">No</option></select>
+                    </label>
+                    <label>Dewormed
+                        <select name="dewormedStatus"><option value="unknown">Not specified</option><option value="yes">Yes</option><option value="no">No</option></select>
+                    </label>
+                    <label>Trained
+                        <select name="trainedStatus"><option value="unknown">Not specified</option><option value="yes">Yes</option><option value="no">No</option></select>
+                    </label>
+                    <label class="wide">Health notes<input name="healthInfo" maxlength="500" placeholder="Optional: medication, special care, or other health notes"></label>
 
-                    <label class="wide">Upload Photo File (JPG, PNG, WEBP)
-                        <input type="file" id="petImageUpload" accept="image/jpeg,image/png,image/webp,image/gif">
-                        <small style="color:var(--muted);font-weight:normal;">Direct upload stored safely on server. Limit 5MB.</small>
+                    <label class="wide">Upload photos (JPG, PNG, WEBP, GIF)
+                        <input type="file" id="petImageUpload" accept="image/jpeg,image/png,image/webp,image/gif" multiple aria-describedby="petImageUploadHelp petImageUploadStatus">
+                        <small id="petImageUploadHelp" style="color:var(--muted);font-weight:normal;">Choose several photos at once. Each photo can be up to 5MB; the first photo is the cover.</small>
+                        <small id="petImageUploadStatus" role="status" aria-live="polite" style="color:var(--muted);font-weight:normal;"></small>
                     </label>
 
                     <label class="wide">Or Photo Image URL
@@ -374,6 +421,14 @@ function say(msg) {
 }
 window.say = say;
 
+const petAgeInput = document.getElementById('petAgeInput');
+const petAgeUnit = document.getElementById('petAgeUnit');
+function syncAgeLimit() {
+    if (petAgeInput && petAgeUnit) petAgeInput.max = ({ years: 40, months: 480, days: 14600 })[petAgeUnit.value] || 40;
+}
+petAgeUnit?.addEventListener('change', syncAgeLimit);
+syncAgeLimit();
+
 async function api(method = 'GET', data) {
     const r = await fetch('api/seller-pets.php' + (method === 'GET' && filter ? `?filter=${filter}` : ''), {
         method,
@@ -403,13 +458,21 @@ function go(id) {
     if (id === 'messages') window.loadSellerMessages?.();
 }
 
+function formatSellerAge(p) {
+    const unit = ['days', 'months', 'years'].includes(p.ageUnit) ? p.ageUnit : 'years';
+    const value = p.ageValue !== undefined && p.ageValue !== null ? Number(p.ageValue) : Number(p.age);
+    if (!Number.isFinite(value)) return 'Age not specified';
+    const rounded = unit === 'years' ? value : Math.round(value);
+    return `${rounded} ${unit.replace(/s$/, '')}${rounded === 1 ? '' : 's'} old`;
+}
+
 function preview(p) {
     return `
     <article class="recent-row">
         <img src="${esc(p.image)}" alt="${esc(p.name)}">
         <div>
             <b>${esc(p.name)}</b>
-            <p>${esc(p.breed)} · ${esc(p.type)} · ${esc(p.sex || "Sex not specified")} · ${esc(p.age)} years</p>
+            <p>${esc(p.breed)} · ${esc(p.type)} · ${esc(p.sex || "Sex not specified")} · ${esc(formatSellerAge(p))}</p>
         </div>
         <span class="badge ${p.status}">${p.status === 'available' ? 'Available' : p.status === 'reserved' ? 'Reserved' : p.status === 'sold' ? 'Sold' : 'Deleted'}</span>
     </article>`;
@@ -446,8 +509,7 @@ function card(p) {
                 <span class="badge ${esc(p.status)}">${p.status === 'available' ? 'Available' : p.status === 'reserved' ? 'Reserved' : p.status === 'sold' ? 'Sold' : 'Deleted'}</span>
             </div>
             <p>
-                ${esc(p.breed)} · ${esc(p.type)} · ${esc(p.sex || "Sex not specified")} · ${esc(p.age)} yrs old<br>
-                ${p.price > 0 ? `Adoption fee: $${Number(p.price).toFixed(2)}<br>` : 'Adoption fee: Free<br>'}
+                ${esc(p.breed)} · ${esc(p.type)} · ${esc(p.sex || "Sex not specified")} · ${esc(formatSellerAge(p))}<br>
                 ${esc(p.description)}<br>
                 📍 ${esc(p.pickupLocation || "Shared with buyer in chat")}
             </p>
@@ -564,34 +626,46 @@ document.getElementById('addImageUrlBtn').onclick = () => {
     updateGalleryThumbs();
 };
 
-// Image file upload
+// Upload every selected photo and append it to the listing gallery.
 document.getElementById('petImageUpload').onchange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const formData = new FormData();
-    formData.append('image_file', file);
-    formData.append('action', 'upload');
+    const input = e.currentTarget;
+    const files = Array.from(input.files || []);
+    if (!files.length) return;
+    const status = document.getElementById('petImageUploadStatus');
+    let uploaded = 0;
+    const failed = [];
+    input.disabled = true;
 
-    try {
-        const res = await fetch('api/seller-pets.php', {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: {
-                Accept: 'application/json',
-                'X-CSRF-Token': csrf
-            },
-            body: formData
-        });
-        const json = await res.json();
-        if (!res.ok || !json.success) throw new Error(json.message || 'Upload failed');
-        galleryImages.push(json.imageUrl);
-        updateGalleryThumbs();
-        say('Photo uploaded successfully!');
-    } catch (err) {
-        say(err.message);
-    } finally {
-        e.target.value = '';
+    for (const [index, file] of files.entries()) {
+        if (status) status.textContent = `Uploading photo ${index + 1} of ${files.length}…`;
+        const formData = new FormData();
+        formData.append('image_file', file);
+        formData.append('action', 'upload');
+
+        try {
+            const res = await fetch('api/seller-pets.php', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { Accept: 'application/json', 'X-CSRF-Token': csrf },
+                body: formData
+            });
+            const json = await res.json();
+            if (!res.ok || !json.success) throw new Error(json.message || 'Upload failed');
+            galleryImages.push(json.imageUrl);
+            uploaded++;
+            updateGalleryThumbs();
+        } catch (err) {
+            failed.push(`${file.name}: ${err.message || 'Upload failed'}`);
+        }
     }
+
+    input.disabled = false;
+    input.value = '';
+    if (status) status.textContent = failed.length
+        ? `${uploaded} photo${uploaded === 1 ? '' : 's'} added. ${failed.length} could not be uploaded.`
+        : `${uploaded} photo${uploaded === 1 ? '' : 's'} added to the gallery.`;
+    if (failed.length) say(`${uploaded} photo${uploaded === 1 ? '' : 's'} added; ${failed.length} failed. Check the file type and 5MB limit, then try again.`);
+    else if (uploaded) say(`${uploaded} photo${uploaded === 1 ? '' : 's'} uploaded successfully!`);
 };
 
 function editPet(id) {
@@ -599,8 +673,13 @@ function editPet(id) {
     if (!pet) return;
     editing = id;
     const form = document.getElementById('petForm');
-    for (const key of ['name', 'breed', 'type', 'sex', 'age', 'price', 'vaccinationStatus', 'healthInfo', 'pickupLocation', 'description']) {
+    for (const key of ['name', 'breed', 'type', 'sex', 'age', 'ageUnit', 'price', 'vaccinationStatus', 'sterilizedStatus', 'dewormedStatus', 'trainedStatus', 'healthInfo', 'pickupLocation', 'description']) {
         if (form.elements[key]) form.elements[key].value = pet[key] ?? '';
+    }
+    syncAgeLimit();
+    if (form.elements.vaccinationStatus) {
+        const vaccine = String(pet.vaccinationStatus || '').toLowerCase();
+        form.elements.vaccinationStatus.value = ['yes', 'up to date', 'fully vaccinated', 'vaccinated'].includes(vaccine) ? 'yes' : ['no', 'not vaccinated'].includes(vaccine) ? 'no' : 'unknown';
     }
     galleryImages = (pet.images || []).map(img => typeof img === 'string' ? img : img.url).filter(Boolean);
     if (!galleryImages.length && pet.image) galleryImages.push(pet.image);
@@ -665,6 +744,8 @@ document.getElementById('petForm').onsubmit = async (e) => {
         const result = await api('POST', data);
         say(result.message);
         form.reset();
+        syncAgeLimit();
+        document.getElementById('petImageUploadStatus').textContent = '';
         galleryImages = [];
         updateGalleryThumbs();
         editing = '';
@@ -681,6 +762,8 @@ document.getElementById('petForm').onsubmit = async (e) => {
 
 document.getElementById('cancelEdit').onclick = () => {
     document.getElementById('petForm').reset();
+    syncAgeLimit();
+    document.getElementById('petImageUploadStatus').textContent = '';
     editing = '';
     galleryImages = [];
     updateGalleryThumbs();

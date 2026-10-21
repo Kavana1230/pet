@@ -60,7 +60,7 @@ foreach ($applications as &$application) {
     $application['nextStep'] = match ($rawStatus) {
         'pending' => 'Awaiting seller review',
         'accepted' => 'Ready to confirm meeting',
-        'meeting_confirmed' => 'Meeting scheduled · Pet is reserved',
+        'meeting_confirmed' => 'Meeting confirmed · Arrange a time in messages',
         'completed' => 'Adoption complete',
         'rejected' => 'Conversation closed',
         'cancelled' => 'Listing reopened',

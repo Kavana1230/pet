@@ -71,23 +71,30 @@ function petCard(pet, compact = false) {
   const liked = favorites.has(pet.name);
   const isOwnListing = Boolean(pet.ownerId && pet.ownerId === profile.id);
   const species = String(pet.type || '').toLowerCase();
-  const age = Number(pet.age);
-  const ageLabel = `${escapeHtml(pet.age)} ${age === 1 ? 'year' : 'years'} old`;
+  const ageLabel = escapeHtml(formatPetAge(pet));
+  const photo = escapeHtml(pet.image || '');
+  const cardDetails = compact
+    ? `<div class="pet-card-title"><h3>${escapeHtml(pet.name)}</h3><span class="pet-tag">${escapeHtml(pet.breed)}</span></div>
+        <p class="pet-card-meta">${ageLabel}${pet.sex ? ` <span aria-hidden="true">·</span> ${escapeHtml(pet.sex[0].toUpperCase() + pet.sex.slice(1))}` : ''}</p>`
+    : `<h3>${escapeHtml(pet.name)}</h3>
+        <span class="pet-tag">${escapeHtml(pet.breed || 'Breed not specified')}</span>
+        <p class="pet-card-location"><span aria-hidden="true">📍</span> Location shared privately</p>`;
+  const meetButton = isOwnListing
+    ? '<button class="small-primary" type="button" disabled>Your listing</button>'
+    : `<button class="${compact ? 'small-primary' : 'primary-btn'}" data-adopt="${escapeHtml(pet.id || pet.name)}">${compact ? `Meet ${escapeHtml(pet.name)}` : `Meet ${escapeHtml(pet.name)} →`}</button>`;
   return `
     <article class="${compact ? 'dashboard-pet' : 'full-pet-card'}">
       <div class="pet-image-wrap">
-        <img src="${escapeHtml(pet.image)}" alt="${escapeHtml(pet.name)}" loading="lazy">
+        <img src="${photo}" alt="${escapeHtml(pet.name)}" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false">
+        <div class="pet-image-placeholder" hidden aria-hidden="true"><span>🐾</span></div>
         <button class="heart-btn${liked ? ' liked' : ''}" data-favorite="${escapeHtml(pet.name)}" aria-label="${liked ? 'Remove' : 'Add'} ${escapeHtml(pet.name)} ${liked ? 'from' : 'to'} favorites" aria-pressed="${liked}">${liked ? '♥' : '♡'}</button>
         <span class="species-chip ${escapeHtml(species)}">${escapeHtml(species)}</span>
       </div>
       <div class="${compact ? 'pet-body' : 'full-pet-card-body'}">
-        <div class="pet-card-title"><h3>${escapeHtml(pet.name)}</h3><span class="pet-tag">${escapeHtml(pet.breed)}</span></div>
-        <p class="pet-card-meta">${ageLabel}${pet.sex ? ` <span aria-hidden="true">·</span> ${escapeHtml(pet.sex[0].toUpperCase() + pet.sex.slice(1))}` : ''}</p>
+        ${cardDetails}
         ${compact ? '' : `<p class="pet-card-description">${escapeHtml(pet.description || 'Ready to meet a loving new family.')}</p>`}
-        ${isOwnListing
-          ? '<button class="small-primary" type="button" disabled>Your listing</button>'
-          : `<button class="${compact ? 'small-primary' : 'primary-btn'}" data-adopt="${escapeHtml(pet.id || pet.name)}">${compact ? `Meet ${escapeHtml(pet.name)}` : 'Meet this pet'}</button>`}
       </div>
+      <div class="pet-card-action">${meetButton}</div>
     </article>`;
 }
 
@@ -328,9 +335,9 @@ function renderMessages() {
     if (!canReply || st === 'rejected') {
       statusBannerHtml = `<div class="chat-status-notice rejected" style="background:#fee2e2;color:#991b1b;border:1px solid #fecaca;padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:13px;display:flex;align-items:center;gap:8px;"><span>❌</span><span><strong>Application Declined:</strong> The seller decided not to proceed. This conversation is archived for reference.</span></div>`;
     } else if (st === 'accepted') {
-      statusBannerHtml = `<div class="chat-status-notice accepted" style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:13px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;"><span>🎉 <strong>Application Accepted!</strong> The seller approved your request. Confirm your meet & greet:</span><button class="primary-btn small" id="confirmMeetingBtn" type="button" style="padding:6px 14px;font-size:12px;white-space:nowrap;cursor:pointer;">📅 Confirm Meeting</button></div>`;
+      statusBannerHtml = `<div class="chat-status-notice accepted"><span><strong>🎉 Application accepted</strong><br>The seller approved your request. Confirm the meet-and-greet when you’re ready.</span><button class="primary-btn" id="confirmMeetingBtn" type="button">📅 Confirm meeting</button></div>`;
     } else if (st === 'meeting_confirmed') {
-      statusBannerHtml = `<div class="chat-status-notice confirmed" style="background:#e0e7ff;color:#3730a3;border:1px solid #c7d2fe;padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:13px;display:flex;align-items:center;gap:8px;"><span>🤝</span><span><strong>Meet & Greet Confirmed!</strong> Listing is reserved while you meet. Arrange pickup time and place here.</span></div>`;
+      statusBannerHtml = `<div class="chat-status-notice confirmed"><span aria-hidden="true">🤝</span><span><strong>Meet-and-greet confirmed</strong><br>Arrange a time and place together in your messages. The listing is reserved while you meet.</span></div>`;
     } else if (st === 'completed') {
       statusBannerHtml = `<div class="chat-status-notice completed" style="background:#f3e8ff;color:#6b21a8;border:1px solid #e9d5ff;padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:13px;display:flex;align-items:center;gap:8px;"><span>🏠</span><span><strong>Adoption Completed!</strong> Congratulations on your new companion!</span></div>`;
     }
@@ -339,7 +346,7 @@ function renderMessages() {
   if (!active) {
     chat.innerHTML = '<div class="chat-welcome"><span>🐾</span><h2>Your next friendship starts with hello.</h2><p>Choose an existing conversation or start a chat about a pet listed by another member.</p></div>';
   } else {
-    const msgListHtml = (active.messages || []).map((message) => {
+    const msgListHtml = (active.messages || []).filter((message) => !/meet-and-greet confirmed!|meeting confirmed! the pet listing has been reserved/i.test(message.text || '')).map((message) => {
       const own = message.senderId === profile.id;
       const senderName = own ? profile.name : (active.buyerId === profile.id ? active.sellerName : active.buyerName) || 'Paw Net member';
       const sentAt = new Date(message.sentAt);
@@ -349,14 +356,14 @@ function renderMessages() {
     chat.innerHTML = statusBannerHtml + msgListHtml;
 
     document.getElementById('confirmMeetingBtn')?.addEventListener('click', async () => {
-      const appId = active.applicationId;
+      const appId = active.application?.id || active.applicationId;
       if (!appId) return;
       const btn = document.getElementById('confirmMeetingBtn');
       if (btn) btn.disabled = true;
       try {
         const res = await apiRequest('api/applications.php?action=confirm_meeting', {
           method: 'POST',
-          body: JSON.stringify({ applicationId: appId })
+          body: JSON.stringify({ action: 'confirm_meeting', applicationId: appId, conversationId: active.id })
         });
         showToast(res.message || 'Meeting confirmed! Listing reserved.');
         await loadDashboard();
@@ -515,6 +522,31 @@ function updateModalGallery() {
   }
 }
 
+function formatPetAge(pet) {
+  const unit = ['days', 'months', 'years'].includes(pet.ageUnit) ? pet.ageUnit : 'years';
+  const raw = pet.ageValue !== undefined && pet.ageValue !== null && pet.ageValue !== '' ? pet.ageValue : pet.age;
+  const value = Number(raw);
+  if (!Number.isFinite(value)) return 'Age not specified';
+  const rounded = unit === 'years' ? value : Math.round(value);
+  const singular = unit.replace(/s$/, '');
+  return `${rounded} ${singular}${rounded === 1 ? '' : 's'} old`;
+}
+
+function normalizedCareStatus(value) {
+  const status = String(value ?? '').trim().toLowerCase();
+  if (['yes', 'up to date', 'fully vaccinated', 'vaccinated'].includes(status)) return 'yes';
+  if (['no', 'not vaccinated'].includes(status)) return 'no';
+  return 'unknown';
+}
+
+function setCareBadge(id, value, label) {
+  const badge = document.getElementById(id);
+  if (!badge) return;
+  const status = normalizedCareStatus(value);
+  badge.className = `care-badge ${status}`;
+  badge.textContent = status === 'yes' ? `✓ ${label}` : status === 'no' ? `✕ ${label}: No` : `? ${label}: Not specified`;
+}
+
 function openPet(petIdentifier) {
   const pet = pets.find((item) => item.id === petIdentifier) || petByName(petIdentifier);
   if (!pet) return;
@@ -529,11 +561,6 @@ function openPet(petIdentifier) {
   document.getElementById('modalPetMeta').textContent = `${pet.breed} · ${pet.age} ${pet.age === 1 ? 'year' : 'years'} old · ${pet.sex ? `${pet.sex[0].toUpperCase()}${pet.sex.slice(1)}` : 'Sex not specified'} · ${pet.type}`;
   document.getElementById('modalPetDescription').textContent = pet.description;
 
-  const priceEl = document.getElementById('modalPetPrice');
-  if (priceEl) {
-    const p = parseFloat(pet.price);
-    priceEl.textContent = (p && p > 0) ? `Fee: $${p.toFixed(2)}` : 'Fee: Free adoption';
-  }
   const vacEl = document.getElementById('modalPetVaccinated');
   if (vacEl) {
     vacEl.textContent = `Vaccination: ${pet.vaccinationStatus || 'Up to date'}`;
@@ -542,6 +569,28 @@ function openPet(petIdentifier) {
   if (healthEl) {
     healthEl.textContent = `Health: ${pet.healthInfo || 'Good health'}`;
   }
+  const ageText = formatPetAge(pet);
+  const gender = pet.sex ? `${pet.sex[0].toUpperCase()}${pet.sex.slice(1)}` : 'Not specified';
+  document.getElementById('modalPetMeta').textContent = `${pet.breed} · ${gender} · ${ageText} · ${pet.type}`;
+  document.getElementById('modalPetReference').textContent = pet.id ? `#${String(pet.id).slice(0, 8).toUpperCase()}` : '';
+  document.getElementById('modalPetGender').textContent = gender;
+  document.getElementById('modalPetAge').textContent = ageText;
+  document.getElementById('modalPetBreed').textContent = pet.breed || 'Not specified';
+  const sellerName = pet.ownerName || 'Paw Net seller';
+  document.getElementById('modalPetSeller').textContent = sellerName;
+  document.getElementById('modalSellerCardName').textContent = sellerName;
+  document.getElementById('modalSellerInitial').textContent = sellerName.trim().charAt(0).toUpperCase() || 'P';
+  document.getElementById('modalAboutName').textContent = pet.name;
+  const healthNotes = document.getElementById('modalHealthNotes');
+  const healthNotesText = document.getElementById('modalPetHealth');
+  if (healthNotes && healthNotesText) {
+    healthNotesText.textContent = pet.healthInfo || '';
+    healthNotes.hidden = !pet.healthInfo;
+  }
+  setCareBadge('modalPetVaccinated', pet.vaccinationStatus, 'Vaccinated');
+  setCareBadge('modalPetSterilized', pet.sterilizedStatus, 'Sterilized');
+  setCareBadge('modalPetDewormed', pet.dewormedStatus, 'Dewormed');
+  setCareBadge('modalPetTrained', pet.trainedStatus, 'Trained');
   const statusBadge = document.getElementById('modalStatusBadge');
   if (statusBadge) {
     statusBadge.textContent = (pet.status || 'available').toUpperCase();
@@ -559,7 +608,7 @@ function openPet(petIdentifier) {
   inquiryText.value = pet.ownerId ? `Hi, I'm interested in adopting ${pet.name}. Could you tell me more about their health, personality, and routine, and let me know when we could arrange a meet-and-greet?` : '';
   const applyButton = document.getElementById('modalApply');
   applyButton.disabled = isOwnListing;
-  applyButton.textContent = isOwnListing ? 'Your listing' : pet.ownerId ? 'Send adoption inquiry' : 'Apply to Adopt';
+  applyButton.textContent = isOwnListing ? 'Your listing' : pet.ownerId ? 'Message seller to adopt' : 'Apply to Adopt';
   const favoriteButton = document.getElementById('modalFavorite');
   favoriteButton.textContent = favorites.has(pet.name) ? '♥ Saved' : '♡ Save Favorite';
   document.getElementById('petModal').classList.add('open');
@@ -855,25 +904,28 @@ function applyA11yPrefs(prefs) {
   if (prefs.textSize === 'medium') body.classList.add('a11y-text-md');
   if (prefs.textSize === 'large') body.classList.add('a11y-text-lg');
   body.classList.toggle('a11y-high-contrast', Boolean(prefs.contrast));
+  body.classList.toggle('a11y-color-vision', Boolean(prefs.colorVision));
   body.classList.toggle('a11y-reduced-motion', Boolean(prefs.reducedMotion));
 
   const dyslexicToggle = document.getElementById('a11yDyslexicToggle');
   const textSizeSelect = document.getElementById('a11yTextSizeSelect');
   const contrastToggle = document.getElementById('a11yContrastToggle');
+  const colorVisionToggle = document.getElementById('a11yColorVisionToggle');
   const motionToggle = document.getElementById('a11yMotionToggle');
 
   if (dyslexicToggle) dyslexicToggle.checked = Boolean(prefs.dyslexic);
   if (textSizeSelect) textSizeSelect.value = prefs.textSize || 'default';
   if (contrastToggle) contrastToggle.checked = Boolean(prefs.contrast);
+  if (colorVisionToggle) colorVisionToggle.checked = Boolean(prefs.colorVision);
   if (motionToggle) motionToggle.checked = Boolean(prefs.reducedMotion);
 }
 
 function loadA11yPrefs() {
   try {
     const raw = localStorage.getItem(A11Y_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : { dyslexic: false, textSize: 'default', contrast: false, reducedMotion: false };
+    return raw ? { colorVision: false, ...JSON.parse(raw) } : { dyslexic: false, textSize: 'default', contrast: false, colorVision: false, reducedMotion: false };
   } catch {
-    return { dyslexic: false, textSize: 'default', contrast: false, reducedMotion: false };
+    return { dyslexic: false, textSize: 'default', contrast: false, colorVision: false, reducedMotion: false };
   }
 }
 
@@ -917,6 +969,12 @@ function setupA11y() {
     saveA11yPrefs(p);
   });
 
+  document.getElementById('a11yColorVisionToggle')?.addEventListener('change', (e) => {
+    const p = loadA11yPrefs();
+    p.colorVision = e.target.checked;
+    saveA11yPrefs(p);
+  });
+
   document.getElementById('a11yMotionToggle')?.addEventListener('change', (e) => {
     const p = loadA11yPrefs();
     p.reducedMotion = e.target.checked;
@@ -924,7 +982,7 @@ function setupA11y() {
   });
 
   resetBtn?.addEventListener('click', () => {
-    const defaults = { dyslexic: false, textSize: 'default', contrast: false, reducedMotion: false };
+    const defaults = { dyslexic: false, textSize: 'default', contrast: false, colorVision: false, reducedMotion: false };
     saveA11yPrefs(defaults);
     showToast('Accessibility display settings reset.');
   });

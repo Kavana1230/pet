@@ -150,14 +150,16 @@ foreach ($defaultSamplePets as $sample) {
 }
 
 $petStmt = $pdo->prepare('
-    INSERT INTO pets (id, owner_id, name, breed, type, sex, age, price, health_info, vaccination_status, description, pickup_location, status, created_at, updated_at, sold_at)
-    VALUES (:id, :owner_id, :name, :breed, :type, :sex, :age, :price, :health_info, :vaccination_status, :description, :pickup_location, :status, :created_at, :updated_at, :sold_at)
+    INSERT INTO pets (id, owner_id, name, breed, type, sex, age, age_value, age_unit, price, health_info, vaccination_status, description, pickup_location, status, created_at, updated_at, sold_at)
+    VALUES (:id, :owner_id, :name, :breed, :type, :sex, :age, :age_value, "years", :price, :health_info, :vaccination_status, :description, :pickup_location, :status, :created_at, :updated_at, :sold_at)
     ON DUPLICATE KEY UPDATE
         name = VALUES(name),
         breed = VALUES(breed),
         type = VALUES(type),
         sex = VALUES(sex),
         age = VALUES(age),
+        age_value = VALUES(age_value),
+        age_unit = VALUES(age_unit),
         price = VALUES(price),
         health_info = VALUES(health_info),
         vaccination_status = VALUES(vaccination_status),
@@ -195,6 +197,7 @@ foreach ($pets as $p) {
         'type' => strtolower((string) ($p['type'] ?? 'dog')),
         'sex' => $sex,
         'age' => (int) ($p['age'] ?? 1),
+        'age_value' => (int) ($p['age'] ?? 1),
         'price' => (float) ($p['price'] ?? 0.00),
         'health_info' => (string) ($p['healthInfo'] ?? 'Good overall health'),
         'vaccination_status' => (string) ($p['vaccinationStatus'] ?? 'Up to date'),

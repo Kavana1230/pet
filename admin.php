@@ -319,7 +319,7 @@ $initials = strtoupper(substr($nameParts[0] ?? 'A', 0, 1) . substr($nameParts[1]
             <div class="panel table-panel">
                 <div class="table-wrap">
                     <table>
-                        <thead><tr><th>Pet</th><th>Species</th><th>Seller</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
+                        <thead><tr><th>Pet</th><th>Species</th><th>Seller</th><th>Status</th><th>Actions</th></tr></thead>
                         <tbody id="adminPetsTableBody"><tr><td colspan="6" class="empty-state">Loading pets...</td></tr></tbody>
                     </table>
                 </div>
@@ -576,12 +576,11 @@ async function loadPets() {
                 <td>
                     <div style="display:flex;align-items:center;gap:10px;">
                         <img src="${esc(p.image)}" style="width:40px;height:40px;border-radius:8px;object-fit:cover;">
-                        <div><b>${esc(p.name)}</b><br><small style="color:var(--muted)">${esc(p.breed)} · ${p.age} yrs</small></div>
+                        <div><b>${esc(p.name)}</b><br><small style="color:var(--muted)">${esc(p.breed)} · ${Number(p.ageValue ?? p.age)} ${esc(p.ageUnit || 'years')}</small></div>
                     </div>
                 </td>
                 <td>${esc(p.type)}</td>
                 <td>${esc(p.ownerName)}</td>
-                <td>$${Number(p.price).toFixed(2)}</td>
                 <td><span class="status ${p.status === 'available' ? 'approved' : p.status === 'reserved' ? 'pending' : 'completed'}">${esc(p.status)}</span></td>
                 <td>
                     <div class="table-actions">
@@ -592,7 +591,7 @@ async function loadPets() {
                     </div>
                 </td>
             </tr>
-        `).join('') : '<tr><td colspan="6" class="empty-state">No listings found for this filter.</td></tr>';
+        `).join('') : '<tr><td colspan="5" class="empty-state">No listings found for this filter.</td></tr>';
     } catch (e) {
         toast(e.message);
     }

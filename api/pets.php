@@ -20,8 +20,10 @@ try {
     }
 
     $stmt = $pdo->prepare("
-        SELECT p.id, p.owner_id AS ownerId, p.name, p.breed, p.type, p.sex, p.age, p.price,
+        SELECT p.id, p.owner_id AS ownerId, owner.name AS ownerName, p.name, p.breed, p.type, p.sex, p.age,
+               p.age_value AS ageValue, p.age_unit AS ageUnit, p.price,
                p.health_info AS healthInfo, p.vaccination_status AS vaccinationStatus,
+               p.sterilized_status AS sterilizedStatus, p.dewormed_status AS dewormedStatus, p.trained_status AS trainedStatus,
                p.description, p.status, p.created_at AS createdAt, p.updated_at AS updatedAt,
                COALESCE(
                    (SELECT pi.image_url FROM pet_images pi WHERE pi.pet_id = p.id AND pi.is_primary = 1 LIMIT 1),
@@ -29,6 +31,7 @@ try {
                    'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=900&q=80'
                ) AS image
         FROM pets p
+        LEFT JOIN users owner ON owner.id = p.owner_id AND owner.role = 'seller'
         $where
         ORDER BY p.created_at DESC
     ");
@@ -49,6 +52,7 @@ try {
         foreach ($pets as &$pet) {
             $pet['images'] = $imagesByPet[$pet['id']] ?? [$pet['image']];
             $pet['age'] = (int) $pet['age'];
+            $pet['ageValue'] = (float) $pet['ageValue'];
             $pet['price'] = (float) $pet['price'];
         }
         unset($pet);
@@ -73,6 +77,11 @@ try {
     $pets = array_map(static function ($pet) {
         unset($pet['pickupLocation']);
         $pet['images'] = !empty($pet['images']) ? $pet['images'] : [$pet['image'] ?? ''];
+        $pet['ageValue'] = isset($pet['ageValue']) ? (float) $pet['ageValue'] : (int) ($pet['age'] ?? 0);
+        $pet['ageUnit'] = in_array($pet['ageUnit'] ?? '', ['days', 'months', 'years'], true) ? $pet['ageUnit'] : 'years';
+        $pet['sterilizedStatus'] = $pet['sterilizedStatus'] ?? 'unknown';
+        $pet['dewormedStatus'] = $pet['dewormedStatus'] ?? 'unknown';
+        $pet['trainedStatus'] = $pet['trainedStatus'] ?? 'unknown';
         return $pet;
     }, $pets);
     echo json_encode(array_values($pets), JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);

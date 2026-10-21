@@ -179,7 +179,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         }
 
         $sql = '
-            SELECT p.id, p.owner_id AS ownerId, p.name, p.breed, p.type, p.sex, p.age, p.price,
+            SELECT p.id, p.owner_id AS ownerId, p.name, p.breed, p.type, p.sex, p.age,
+                   p.age_value AS ageValue, p.age_unit AS ageUnit, p.price,
                    p.health_info AS healthInfo, p.vaccination_status AS vaccinationStatus,
                    p.description, p.pickup_location AS pickupLocation, p.status,
                    p.created_at AS createdAt, p.deleted_at AS deletedAt, p.sold_at AS soldAt,

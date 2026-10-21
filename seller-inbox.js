@@ -70,11 +70,11 @@
     } else if (status === 'accepted') {
       statusText = '<span style="color:#16815d;">✅ Accepted by you · Meeting not yet confirmed</span>';
       actionsHtml = `
-        <button class="btn sm" style="background:#7056df;color:white;" id="sellerConfirmBtn">📅 Confirm Meeting</button>
+        <button class="btn sm" style="background:#1769d2;color:white;" id="sellerConfirmBtn">📅 Confirm meeting</button>
         <button class="btn sm danger" id="sellerRejectBtn">Decline</button>
       `;
     } else if (status === 'meeting_confirmed') {
-      statusText = '<span style="color:#16815d;">🤝 Meeting scheduled · Listing is reserved</span>';
+      statusText = '<span style="color:#16815d;">🤝 Meeting confirmed · Arrange a time in chat · Listing is reserved</span>';
       actionsHtml = `
         <button class="btn sm success" id="sellerCompleteBtn">🎉 Mark Adoption Complete</button>
         <button class="btn sm" style="background:#fff;color:#7056df;border:1px solid #7056df;" id="sellerReopenBtn">↩ Reopen Listing</button>
@@ -93,7 +93,6 @@
       <div>${statusText}</div>
       <div class="actions">${actionsHtml}</div>
     `;
-
     // Hook workflow buttons
     document.getElementById('sellerAcceptBtn')?.addEventListener('click', async () => {
       try {
@@ -148,7 +147,7 @@
       }
     });
 
-    log.innerHTML = (conversation.messages || []).map((message) => {
+    log.innerHTML = (conversation.messages || []).filter((message) => !/meet-and-greet confirmed!|meeting confirmed! the pet listing has been reserved/i.test(message.text || '')).map((message) => {
       const sentBySeller = message.senderId === sellerId;
       const sentAt = new Date(message.sentAt);
       const time = Number.isNaN(sentAt.getTime()) ? '' : sentAt.toLocaleString();
